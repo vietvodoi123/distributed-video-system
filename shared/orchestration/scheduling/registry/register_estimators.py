@@ -14,14 +14,16 @@ from shared.orchestration.scheduling.estimators.translate_text_estimator import 
     TranslateTextEstimator
 )
 
-from shared.orchestration.scheduling.estimators.refine_text_estimator import (
-    RefineTextEstimator
+# from shared.orchestration.scheduling.estimators.refine_text_estimator import (
+#     RefineTextEstimator
+# )
+#
+# from shared.orchestration.scheduling.estimators.generate_tts_segments_estimator import (
+#     GenerateTtsSegmentsEstimator
+# )
+from shared.orchestration.scheduling.estimators.generate_line_task_estimator import (
+    GenerateLineTaskEstimator
 )
-
-from shared.orchestration.scheduling.estimators.generate_tts_segments_estimator import (
-    GenerateTtsSegmentsEstimator
-)
-
 from shared.orchestration.scheduling.estimators.merge_tts_segments_estimator import (
     MergeTtsSegmentsEstimator
 )
@@ -61,10 +63,12 @@ from shared.orchestration.scheduling.estimators.generate_batch_youtube_descripti
 from shared.orchestration.scheduling.estimators.generate_batch_youtube_upload_estimator import (
     YoutubeUploadEstimator
 )
-
-from shared.orchestration.scheduling.estimators.tts_line_estimator import (
-    TtsLineEstimator
+from shared.orchestration.scheduling.estimators.android_line_task_estimator import (
+    AndroidLineTaskEstimator
 )
+# from shared.orchestration.scheduling.estimators.tts_line_estimator import (
+#     TtsLineEstimator
+# )
 _registered = False
 
 
@@ -87,20 +91,22 @@ def register_estimators():
         TranslateTextEstimator()
     )
 
-    ResourceEstimatorRegistry.register(
-        RefineTextEstimator()
-    )
-
-    ResourceEstimatorRegistry.register(
-        GenerateTtsSegmentsEstimator()
-    )
-
-    ResourceEstimatorRegistry.register(
-        TtsLineEstimator()
-    )
-    print("REGISTER TTS LINE ESTIMATOR")
+    # ResourceEstimatorRegistry.register(
+    #     RefineTextEstimator()
+    # )
+    #
+    # ResourceEstimatorRegistry.register(
+    #     GenerateTtsSegmentsEstimator()
+    # )
+    #
+    # ResourceEstimatorRegistry.register(
+    #     TtsLineEstimator()
+    # )
     ResourceEstimatorRegistry.register(
         MergeTtsSegmentsEstimator()
+    )
+    ResourceEstimatorRegistry.register(
+        GenerateLineTaskEstimator()
     )
 
     ResourceEstimatorRegistry.register(
@@ -137,6 +143,9 @@ def register_estimators():
 
     ResourceEstimatorRegistry.register(
         YoutubeUploadEstimator()
+    )
+    ResourceEstimatorRegistry.register(
+        AndroidLineTaskEstimator()
     )
 
 

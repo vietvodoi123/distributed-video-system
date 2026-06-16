@@ -1,8 +1,21 @@
+from shared.contracts.enums.task_types import (
+    CRAWL_CHAPTER,
+    PREPROCESS_TEXT,
+    TRANSLATE_TEXT,
+    GENERATE_LINE_TASK,
+    MERGE_TTS_SEGMENTS,
+    TEXT_SCROLL_LOOP,
+    MC_LOOP,
+    RENDER_TEMPLATE,
+    COMPOSE_VIDEO_LAYERS,
+    MERGE_AUDIO_INTO_VIDEO
+)
+
 CHAPTER_PIPELINE = [
 
     {
         "task_type":
-        "crawl_chapter",
+        CRAWL_CHAPTER,
 
         "task_stage":
         "crawl",
@@ -14,7 +27,7 @@ CHAPTER_PIPELINE = [
 
     {
         "task_type":
-        "preprocess_text",
+        PREPROCESS_TEXT,
 
         "task_stage":
         "text",
@@ -23,13 +36,13 @@ CHAPTER_PIPELINE = [
             "cpu"
         ],
         "wait_for": [
-            "crawl_chapter"
+            CRAWL_CHAPTER
         ]
     },
 
     {
         "task_type":
-        "translate_text",
+        TRANSLATE_TEXT,
 
         "task_stage":
         "translation",
@@ -38,32 +51,17 @@ CHAPTER_PIPELINE = [
             "network"
         ],
         "wait_for": [
-            "preprocess_text"
-        ]
-    },
-
-    {
-        "task_type":
-        "refine_text",
-
-        "task_stage":
-        "script",
-
-        "required_capabilities": [
-            "local_llm"
-        ],
-        "wait_for": [
-            "translate_text"
+            PREPROCESS_TEXT
         ]
     },
 
     # =====================================
-    # AUDIO PIPELINE
+    # line PIPELINE
     # =====================================
 
     {
         "task_type":
-        "generate_tts_segments",
+        GENERATE_LINE_TASK,
 
         "task_stage":
         "audio",
@@ -72,13 +70,15 @@ CHAPTER_PIPELINE = [
             "cpu"
         ],
         "wait_for": [
-            "refine_text"
+            TRANSLATE_TEXT
         ]
     },
-
+    # =====================================
+    # audio PIPELINE
+    # =====================================
     {
         "task_type":
-        "merge_tts_segments",
+        MERGE_TTS_SEGMENTS,
 
         "task_stage":
         "ffmpeg",
@@ -87,7 +87,7 @@ CHAPTER_PIPELINE = [
             "ffmpeg"
         ],
         "wait_for": [
-            "generate_tts_segments"
+            GENERATE_LINE_TASK
         ]
 
     },
@@ -98,7 +98,7 @@ CHAPTER_PIPELINE = [
 
     {
         "task_type":
-        "text_scroll_loop",
+        TEXT_SCROLL_LOOP,
 
         "task_stage":
         "video",
@@ -107,13 +107,13 @@ CHAPTER_PIPELINE = [
             "ffmpeg"
         ],
         "wait_for": [
-            "merge_tts_segments"
+            MERGE_TTS_SEGMENTS
         ]
     },
 
     {
         "task_type":
-        "mc_loop",
+        MC_LOOP,
 
         "task_stage":
         "video",
@@ -122,7 +122,7 @@ CHAPTER_PIPELINE = [
             "ffmpeg"
         ],
         "wait_for": [
-            "merge_tts_segments"
+            MERGE_TTS_SEGMENTS
         ]
     },
 
@@ -132,7 +132,7 @@ CHAPTER_PIPELINE = [
 
     {
         "task_type":
-        "render_template",
+        RENDER_TEMPLATE,
 
         "task_stage":
         "render",
@@ -141,13 +141,13 @@ CHAPTER_PIPELINE = [
             "ffmpeg","puppeteer"
         ],
         "wait_for": [
-            "merge_tts_segments"
+            MERGE_TTS_SEGMENTS
         ]
     },
 
     {
         "task_type":
-        "compose_video_layers",
+        COMPOSE_VIDEO_LAYERS,
 
         "task_stage":
         "render",
@@ -157,15 +157,15 @@ CHAPTER_PIPELINE = [
         ],
         "wait_for": [
 
-            "text_scroll_loop",
-            "mc_loop",
-            "render_template"
+            TEXT_SCROLL_LOOP,
+            MC_LOOP,
+            RENDER_TEMPLATE
         ]
     },
 
     {
         "task_type":
-        "merge_audio_into_video",
+        MERGE_AUDIO_INTO_VIDEO,
 
         "task_stage":
         "render",
@@ -175,8 +175,8 @@ CHAPTER_PIPELINE = [
         ],
         "wait_for": [
 
-            "compose_video_layers",
-            "merge_tts_segments"
+            COMPOSE_VIDEO_LAYERS,
+            MERGE_TTS_SEGMENTS
         ]
     }
 

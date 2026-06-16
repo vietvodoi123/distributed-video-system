@@ -33,7 +33,7 @@ from shared.orchestration.scheduling.resource_estimator import (
     ResourceEstimator
 )
 from shared.contracts.task_serializer import (
-    serialize_task
+    serialize_task,serialize_task_for_worker
 )
 from shared.contracts.enums.task_types import (
     COMPOSE_VIDEO_LAYERS,
@@ -45,8 +45,16 @@ from shared.contracts.enums.task_types import (
     RENDER_TEMPLATE,
     MERGE_TTS_SEGMENTS,
     GENERATE_BATCH_THUMBNAIL,
-    GENERATE_YOUTUBE_DESCRIPTION,TTS_LINE
+    GENERATE_YOUTUBE_DESCRIPTION,LINE_TASK,CRAWL_CHAPTER
 )
+def serialize_task_for_claim(task):
+
+    if task.task_type == LINE_TASK:
+
+        return serialize_task_for_worker(task)
+
+    return serialize_task(task)
+
 
 class TaskReservationService:
 
@@ -253,7 +261,7 @@ class TaskReservationService:
             # ==============================
             # LIMIT TASK COUNT
             # ==============================
-            if task.task_type == "crawl_chapter":
+            if task.task_type == CRAWL_CHAPTER:
 
                 if selected_crawl_tasks >= self.MAX_CRAWL_TASKS:
                     continue
@@ -311,7 +319,7 @@ class TaskReservationService:
                     "cost": task_cost
                 }
             )
-            if task.task_type == "crawl_chapter":
+            if task.task_type == CRAWL_CHAPTER:
                 selected_crawl_tasks += 1
             used_cost += task_cost
 
@@ -395,7 +403,7 @@ class TaskReservationService:
                         item["cost"],
 
                     "task_data":
-                        serialize_task(
+                        serialize_task_for_claim(
                             item["task"]
                         )
                 }
@@ -403,6 +411,7 @@ class TaskReservationService:
                 for item in selected_tasks
             ]
         }
+
 
     async def rebuild_payload_from_dependencies(
             self,

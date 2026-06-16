@@ -15,4 +15,4 @@ MAIN_PC_CAPABILITIES = [
     "local_llm"
 ]
 
-ANDROID_TTS = "ANDROID_TTS"
+ANDROID_LINE_TASK = "android_line_task"

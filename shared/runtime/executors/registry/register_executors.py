@@ -54,8 +54,6 @@ from shared.contracts.enums.task_types import (
     CRAWL_CHAPTER,
     PREPROCESS_TEXT,
     TRANSLATE_TEXT,
-    REFINE_TEXT,
-    GENERATE_TTS_SEGMENTS,
     MERGE_TTS_SEGMENTS,
     TEXT_SCROLL_LOOP,
     MC_LOOP,RENDER_TEMPLATE,
@@ -80,14 +78,14 @@ def register_executors():
         TRANSLATE_TEXT,
         TranslateTextExecutor()
     )
-    TaskExecutorRegistry.register(
-        REFINE_TEXT,
-        RefineTextExecutor()
-    )
-    TaskExecutorRegistry.register(
-        GENERATE_TTS_SEGMENTS,
-        GenerateTtsSegmentsExecutor()
-    )
+    # TaskExecutorRegistry.register(
+    #     REFINE_TEXT,
+    #     RefineTextExecutor()
+    # )
+    # TaskExecutorRegistry.register(
+    #     GENERATE_TTS_SEGMENTS,
+    #     GenerateTtsSegmentsExecutor()
+    # )
     TaskExecutorRegistry.register(
         MERGE_TTS_SEGMENTS,
         MergeTtsSegmentsExecutor()

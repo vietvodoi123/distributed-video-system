@@ -18,18 +18,14 @@ from shared.orchestration.models.spawn_task_definition import (
 )
 
 from shared.contracts.enums.task_types import (
-    GENERATE_TTS_SEGMENTS,
-    TTS_LINE,
+    LINE_TASK,
     MERGE_TTS_SEGMENTS,
-    MERGE_AUDIO_INTO_VIDEO,
-    GENERATE_YOUTUBE_DESCRIPTION,
-    MERGE_BATCH_VIDEO,
-    GENERATE_BATCH_THUMBNAIL,
+    GENERATE_LINE_TASK,
     GENERATE_BATCH_YOUTUBE_UPLOAD,
 )
 
 from shared.contracts.capabilities.capabilities import (
-    ANDROID_TTS
+    ANDROID_LINE_TASK
 )
 from shared.orchestration.services.downstream_payload_builder import (
     build_downstream_payload
@@ -118,9 +114,9 @@ class TaskCompletionService:
 
         if (
                 task.task_type
-                == GENERATE_TTS_SEGMENTS
+                == GENERATE_LINE_TASK
         ):
-            await self.handle_generate_tts_segments(
+            await self.handle_generate_line_task(
                 task,
                 execution_result
             )
@@ -153,9 +149,9 @@ class TaskCompletionService:
 
         if (
                 task.task_type
-                == TTS_LINE
+                == LINE_TASK
         ):
-            await self.handle_tts_line_completed(
+            await self.handle_line_task_completed(
                 task
             )
 
@@ -215,7 +211,7 @@ class TaskCompletionService:
             task.batch_id
         )
 
-    async def handle_tts_line_completed(
+    async def handle_line_task_completed(
             self,
             task
     ):
@@ -266,7 +262,7 @@ class TaskCompletionService:
 
             .where(
                 Task.task_type
-                == TTS_LINE
+                == LINE_TASK
             )
         )
 
@@ -290,7 +286,7 @@ class TaskCompletionService:
 
         print(
 
-            "[TTS STATUS]",
+            "[line task status]",
 
             task.chapter_id,
 
@@ -311,29 +307,13 @@ class TaskCompletionService:
         segments = []
 
         for t in tts_tasks:
+            result = t.result or {}
             segments.append({
-
-                "line_index":
-                    t.payload[
-                        "line_index"
-                    ],
-
-                "text":
-                    t.payload[
-                        "text"
-                    ],
-
-                "audio_path":
-                    t.output_path,
-
-                "duration":
-                    (
-                            t.result
-                            or {}
-                    ).get(
-                        "duration",
-                        0
-                    )
+                "line_index": result["line_index"],
+                "raw_text": result["raw_text"],
+                "refined_text": result["refined_text"],
+                "audio_path": result["audio_path"],
+                "duration": result.get("duration", 0)
             })
 
         segments.sort(
@@ -370,7 +350,7 @@ class TaskCompletionService:
     # GENERATE TTS SEGMENTS
     # =====================================
 
-    async def handle_generate_tts_segments(
+    async def handle_generate_line_task(
             self,
             task,
             execution_result
@@ -400,31 +380,20 @@ class TaskCompletionService:
                 SpawnTaskDefinition(
 
                     task_type=
-                    TTS_LINE,
+                    LINE_TASK,
 
                     task_stage=
                     "tts",
 
                     required_capabilities=[
-                        ANDROID_TTS
+                        ANDROID_LINE_TASK
                     ],
 
                     payload={
-
-                        "line_index":
-                            segment["line_index"],
-
-                        "text":
-                            segment["text"],
-
-                        "voice":
-                            segment["voice"],
-
-                        "output_name":
-                            segment["output_name"],
-
-                        "output_path":
-                            segment["output_path"]
+                        "line_index": segment["line_index"],
+                        "raw_text": segment["raw_text"],
+                        "voice": segment["voice"],
+                        "output_path": segment["output_path"]
                     }
                 )
             )
@@ -470,7 +439,7 @@ class TaskCompletionService:
 
         if merge_task:
             merge_task.wait_for_task_types = [
-                TTS_LINE
+                LINE_TASK
             ]
 
             merge_task.is_blocking = True

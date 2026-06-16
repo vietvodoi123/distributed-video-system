@@ -141,3 +141,23 @@ def serialize_task(task):
         "chapter_number":
             task.chapter_number,
     }
+
+def serialize_task_for_worker(task):
+
+    return {
+
+        "id":
+            str(task.id),
+
+        "task_type":
+            task.task_type,
+
+        "task_stage":
+            task.task_stage,
+
+        "task_group":
+            task.task_group,
+
+        "payload":
+            task.payload or {}
+    }

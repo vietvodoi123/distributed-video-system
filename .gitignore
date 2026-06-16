@@ -8,5 +8,18 @@ shared/config/client_secret.json
 
 shared/runtime/templates/reddit_story/node_modules/
 
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual env
+.venv/
+venv/
+
+# Pytest
+.pytest_cache/
+
+# IDE
 .idea/
 *.iml
