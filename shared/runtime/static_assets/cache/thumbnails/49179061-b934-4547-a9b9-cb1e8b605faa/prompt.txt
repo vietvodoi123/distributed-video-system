@@ -1,0 +1,50 @@
+Create a cinematic anime webnovel thumbnail.
+
+        TITLE:
+        Phàm Nhân Tu Tiên, Khởi Đầu Trông Coi Phòng Phế Đan
+
+        STORY DESCRIPTION:
+        "Tô Thập Nhị, một thiếu niên quê mùa với tư chất bình thường,
+vì mang trên mình huyết hải thâm thù,
+bị ép bước lên con đường tu tiên đầy gian khổ.
+
+Đó là một con đường:
+
+Dài đằng đẵng
+
+Đầy âm mưu, tính toán
+
+Cá lớn nuốt cá bé
+
+Không có chỗ cho kẻ yếu
+
+Dù chỉ là một phàm nhân nhỏ bé,
+Tô Thập Nhị vẫn quyết tâm vượt mọi chông gai,
+tự tay mở ra con đường tu tiên của riêng mình."
+
+        THUMBNAIL HOOK:
+        Phàm Nhân Tu Tiên, Khởi Đầu Trông Coi Phòng Phế Đan
+
+        STYLE REQUIREMENTS:
+        - anime cinematic scene
+        - emotional lighting
+        - dramatic composition
+        - highly detailed
+        - ultra quality
+        - youtube thumbnail style
+        - eye catching
+        - vibrant contrast
+
+        IMPORTANT:
+        - absolutely no text
+        - no letters
+        - no words
+        - no typography
+        - no captions
+        - no subtitles
+        - no watermark
+        - no signature
+        - no logo
+        - no UI
+        - clean image background only
+        - text-free image

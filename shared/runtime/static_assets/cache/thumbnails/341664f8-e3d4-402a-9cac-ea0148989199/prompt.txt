@@ -1,0 +1,46 @@
+Create a cinematic anime webnovel thumbnail.
+
+        TITLE:
+        Tu Tiên Kiểu Mới: Dùng Server 40TB Tính Toán Để Thành Tiên, Ta Tu Tiên Bằng Khoa Học!
+
+        STORY DESCRIPTION:
+        "Tiên nhân xoa đầu ta, kết tóc trao trường sinh.”
+
+Một hệ thống siêu máy tính IBMz15 với:
+
+190 CPU
+40TB bộ nhớ
+12.2 tỷ transistor
+
+Theo nhân vật chính xuyên không đến thế giới tu tiên, mang theo cả một “phòng máy di động” bên mình.
+
+Từ đó, hắn bắt đầu con đường tu tiên… nhưng theo cách khoa học tuyệt đối.
+
+👉 Mọi thứ… đều vì trường sinh!"
+
+        THUMBNAIL HOOK:
+        Tu Tiên Kiểu Mới: Dùng Server 40TB Tính Toán Để Thành Tiên, Ta Tu Tiên Bằng Khoa Học!
+
+        STYLE REQUIREMENTS:
+        - anime cinematic scene
+        - emotional lighting
+        - dramatic composition
+        - highly detailed
+        - ultra quality
+        - youtube thumbnail style
+        - eye catching
+        - vibrant contrast
+
+        IMPORTANT:
+        - absolutely no text
+        - no letters
+        - no words
+        - no typography
+        - no captions
+        - no subtitles
+        - no watermark
+        - no signature
+        - no logo
+        - no UI
+        - clean image background only
+        - text-free image

@@ -1,0 +1,52 @@
+Create a cinematic anime webnovel thumbnail.
+
+        TITLE:
+        Ta Có Thiên Phú Vô Địch, Một Lòng Chỉ Nghĩ Sống Tạm
+
+        STORY DESCRIPTION:
+        "Lâm Phong vì tuổi trẻ ngông cuồng,
+đã phải trả giá bằng chính mạng sống của mình.
+
+Sau khi chết, hắn xuyên không đến một thế giới mới mang tên Cửu Châu đại lục.
+
+Kiếp trước vì quá phô trương, hắn mới phải chết.
+
+Kiếp này…
+hắn chỉ muốn sống một cách khiêm tốn, âm thầm.
+
+Nhưng đời không như mong muốn.
+
+Sư tôn – chỗ dựa lớn nhất của hắn – lại bị kẻ xấu âm mưu hãm hại.
+
+Bị dồn vào đường cùng,
+Lâm Phong buộc phải lộ ra một chút thiên phú…
+
+Không ngờ chỉ một phần nhỏ đó,
+cũng đủ khiến cả thế gian chấn động."
+
+        THUMBNAIL HOOK:
+        Ta Có Thiên Phú Vô Địch, Một Lòng Chỉ Nghĩ Sống Tạm
+
+        STYLE REQUIREMENTS:
+        - anime cinematic scene
+        - emotional lighting
+        - dramatic composition
+        - highly detailed
+        - ultra quality
+        - youtube thumbnail style
+        - eye catching
+        - vibrant contrast
+
+        IMPORTANT:
+        - absolutely no text
+        - no letters
+        - no words
+        - no typography
+        - no captions
+        - no subtitles
+        - no watermark
+        - no signature
+        - no logo
+        - no UI
+        - clean image background only
+        - text-free image

@@ -1,0 +1,42 @@
+Create a cinematic anime webnovel thumbnail.
+
+        TITLE:
+        Phế Vật Ngũ Linh Căn, Ta Có Không Gian Linh Dược Nghịch Thiên!
+
+        STORY DESCRIPTION:
+        "Sinh ra với ngũ linh căn, chỉ có thể làm tạp dịch trong tiên môn.
+
+Bỗng nhiên xuất hiện một không gian bí ẩn có thể khiến linh dược tăng trưởng gấp trăm lần.
+
+Từ đó, linh dược trăm năm, ngàn năm, thậm chí vạn năm tiên dược đều dễ như trở bàn tay.
+
+Lục Thanh Hòa trồng linh dược, luyện tiên đan, nuôi linh thú, tu thần thông.
+
+Dù chỉ mang tư chất ngũ linh căn, hắn vẫn có thể bước lên con đường phi thăng thành tiên."
+
+        THUMBNAIL HOOK:
+        Phế Vật Ngũ Linh Căn, Ta Có Không Gian Linh Dược Nghịch Thiên!
+
+        STYLE REQUIREMENTS:
+        - anime cinematic scene
+        - emotional lighting
+        - dramatic composition
+        - highly detailed
+        - ultra quality
+        - youtube thumbnail style
+        - eye catching
+        - vibrant contrast
+
+        IMPORTANT:
+        - absolutely no text
+        - no letters
+        - no words
+        - no typography
+        - no captions
+        - no subtitles
+        - no watermark
+        - no signature
+        - no logo
+        - no UI
+        - clean image background only
+        - text-free image

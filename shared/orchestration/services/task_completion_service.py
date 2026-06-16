@@ -1,0 +1,756 @@
+from datetime import datetime
+
+from sqlalchemy import (
+    select,delete,func,
+    or_
+)
+
+from apps.api.models.task import Task
+from apps.api.models.batch_chapter import (
+    BatchChapter
+)
+from shared.orchestration.services.task_service import (
+    TaskService
+)
+
+from shared.orchestration.models.spawn_task_definition import (
+    SpawnTaskDefinition
+)
+
+from shared.contracts.enums.task_types import (
+    GENERATE_TTS_SEGMENTS,
+    TTS_LINE,
+    MERGE_TTS_SEGMENTS,
+    MERGE_AUDIO_INTO_VIDEO,
+    GENERATE_YOUTUBE_DESCRIPTION,
+    MERGE_BATCH_VIDEO,
+    GENERATE_BATCH_THUMBNAIL,
+    GENERATE_BATCH_YOUTUBE_UPLOAD,
+)
+
+from shared.contracts.capabilities.capabilities import (
+    ANDROID_TTS
+)
+from shared.orchestration.services.downstream_payload_builder import (
+    build_downstream_payload
+)
+
+class TaskCompletionService:
+
+    def __init__(self, db):
+
+        self.db = db
+
+    # =====================================
+    # COMPLETE
+    # =====================================
+
+    async def mark_completed(
+        self,
+        task_id,
+        execution_result=None
+    ):
+
+        stmt = (
+            select(Task)
+            .where(Task.id == task_id)
+        )
+
+        result = await self.db.execute(
+            stmt
+        )
+
+        task = result.scalar_one()
+
+        # =====================================
+        # TASK STATUS
+        # =====================================
+
+        task.status = "completed"
+
+        task.completed_at = (
+            datetime.utcnow()
+        )
+
+        task.claimed_by = None
+
+        task.claimed_at = None
+
+        task.lease_expires_at = None
+
+        task.worker_id = None
+
+        # =====================================
+        # EXECUTION RESULT
+        # =====================================
+
+        if execution_result:
+            result_data = (
+                execution_result.get(
+                    "result",
+                    {}
+                )
+            )
+
+            task.result = result_data
+
+            task.resource_metrics = (
+                result_data.get(
+                    "metrics"
+                )
+            )
+
+            task.output_path = (
+                execution_result.get(
+                    "output_path"
+                )
+            )
+
+            task.manifest_path = (
+                execution_result.get(
+                    "manifest_path"
+                )
+            )
+
+        # =====================================
+        # SPECIAL HANDLERS
+        # =====================================
+
+        if (
+                task.task_type
+                == GENERATE_TTS_SEGMENTS
+        ):
+            await self.handle_generate_tts_segments(
+                task,
+                execution_result
+            )
+
+        if (
+                task.task_type
+                == GENERATE_BATCH_YOUTUBE_UPLOAD
+        ):
+            await self.handle_batch_completed(
+                task
+            )
+
+        # =====================================
+        # DAG PAYLOAD UPDATE
+        # =====================================
+
+        await self.update_downstream_payloads(
+            task
+        )
+
+        # =====================================
+        # COMMIT TASK FIRST
+        # =====================================
+
+        await self.db.commit()
+
+        # =====================================
+        # TTS LAST SEGMENT CHECK
+        # =====================================
+
+        if (
+                task.task_type
+                == TTS_LINE
+        ):
+            await self.handle_tts_line_completed(
+                task
+            )
+
+            await self.db.commit()
+
+        # =====================================
+        # DAG UNLOCK
+        # =====================================
+
+        await self.unlock_waiting_tasks(
+            task.chapter_id,
+            task.batch_id
+        )
+
+        await self.db.commit()
+
+    async def handle_batch_completed(
+            self,
+            task
+    ):
+
+        print(
+            "[BATCH CLEANUP]",
+            task.batch_id
+        )
+
+        # ======================
+        # DELETE TASKS
+        # ======================
+
+        await self.db.execute(
+
+            delete(Task)
+
+            .where(
+                Task.batch_id
+                == task.batch_id
+            )
+        )
+
+        # ======================
+        # DELETE BATCH CHAPTERS
+        # ======================
+
+        await self.db.execute(
+
+            delete(BatchChapter)
+
+            .where(
+                BatchChapter.batch_id
+                == task.batch_id
+            )
+        )
+
+        print(
+            "[BATCH CLEANUP DONE]",
+            task.batch_id
+        )
+
+    async def handle_tts_line_completed(
+            self,
+            task
+    ):
+
+        # ==============================
+        # FIND MERGE TASK
+        # ==============================
+
+        stmt = (
+
+            select(Task)
+
+            .where(
+                Task.chapter_id
+                == task.chapter_id
+            )
+
+            .where(
+                Task.task_type
+                == MERGE_TTS_SEGMENTS
+            )
+        )
+
+        result = await self.db.execute(
+            stmt
+        )
+
+        merge_task = (
+            result.scalars().first()
+        )
+
+        if not merge_task:
+            return
+
+
+        # ==============================
+        # LOAD ALL TTS TASKS
+        # ==============================
+
+        stmt = (
+
+            select(Task)
+
+            .where(
+                Task.chapter_id
+                == task.chapter_id
+            )
+
+            .where(
+                Task.task_type
+                == TTS_LINE
+            )
+        )
+
+        result = await self.db.execute(
+            stmt
+        )
+
+        tts_tasks = (
+            result.scalars().all()
+        )
+
+        if not tts_tasks:
+            return
+
+        all_completed = all(
+
+            t.status == "completed"
+
+            for t in tts_tasks
+        )
+
+        print(
+
+            "[TTS STATUS]",
+
+            task.chapter_id,
+
+            f"{sum(1 for t in tts_tasks if t.status == 'completed')}",
+
+            "/",
+
+            len(tts_tasks)
+        )
+
+        if not all_completed:
+            return
+
+        # ==============================
+        # BUILD SEGMENTS
+        # ==============================
+
+        segments = []
+
+        for t in tts_tasks:
+            segments.append({
+
+                "line_index":
+                    t.payload[
+                        "line_index"
+                    ],
+
+                "text":
+                    t.payload[
+                        "text"
+                    ],
+
+                "audio_path":
+                    t.output_path,
+
+                "duration":
+                    (
+                            t.result
+                            or {}
+                    ).get(
+                        "duration",
+                        0
+                    )
+            })
+
+        segments.sort(
+
+            key=lambda x:
+            x["line_index"]
+        )
+
+        # ==============================
+        # UPDATE MERGE TASK
+        # ==============================
+
+        merge_task.payload = {
+            "segments": segments
+        }
+        print(
+            "[MERGE UNLOCK]",
+            task.chapter_id
+        )
+        merge_task.is_blocking = False
+
+        print(
+
+            "[MERGE READY]",
+
+            task.chapter_id,
+
+            len(segments),
+
+            "segments"
+        )
+
+    # =====================================
+    # GENERATE TTS SEGMENTS
+    # =====================================
+
+    async def handle_generate_tts_segments(
+            self,
+            task,
+            execution_result
+    ):
+
+        result = (
+            execution_result["result"]
+        )
+
+        segments = (
+            result["segments"]
+        )
+
+        task_service = TaskService(
+            self.db
+        )
+
+        # =====================================
+        # BUILD TTS TASKS
+        # =====================================
+
+        task_definitions = []
+
+        for segment in segments:
+            task_definitions.append(
+
+                SpawnTaskDefinition(
+
+                    task_type=
+                    TTS_LINE,
+
+                    task_stage=
+                    "tts",
+
+                    required_capabilities=[
+                        ANDROID_TTS
+                    ],
+
+                    payload={
+
+                        "line_index":
+                            segment["line_index"],
+
+                        "text":
+                            segment["text"],
+
+                        "voice":
+                            segment["voice"],
+
+                        "output_name":
+                            segment["output_name"],
+
+                        "output_path":
+                            segment["output_path"]
+                    }
+                )
+            )
+
+        # =====================================
+        # SPAWN TTS TASKS
+        # =====================================
+
+        await task_service.spawn_many_tasks(
+
+            parent_task=task,
+
+            definitions=task_definitions
+        )
+
+        # =====================================
+        # RECONFIGURE MERGE TASK
+        # =====================================
+
+        stmt = (
+            select(Task)
+            .where(
+                Task.chapter_id
+                == task.chapter_id
+            )
+            .where(
+                Task.batch_id
+                == task.batch_id
+            )
+            .where(
+                Task.task_type
+                == MERGE_TTS_SEGMENTS
+            )
+        )
+
+        result = await self.db.execute(
+            stmt
+        )
+
+        merge_task = (
+            result.scalars().first()
+        )
+
+        if merge_task:
+            merge_task.wait_for_task_types = [
+                TTS_LINE
+            ]
+
+            merge_task.is_blocking = True
+
+            merge_task.payload = {
+
+                "expected_segments":
+                    len(segments),
+
+                "segments": []
+            }
+
+            print(
+
+                "[MERGE TASK UPDATED]",
+
+                merge_task.id,
+
+                "expected=",
+
+                len(segments)
+            )
+
+
+    # =====================================
+    # FAILED
+    # =====================================
+
+    async def mark_failed(
+        self,
+        task_id,
+        error_message: str
+    ):
+
+        stmt = (
+            select(Task)
+            .where(Task.id == task_id)
+        )
+
+        result = await self.db.execute(
+            stmt
+        )
+
+        task = result.scalar_one()
+
+        task.status = "failed"
+
+        task.error_message = (
+            error_message
+        )
+
+        task.failed_at = (
+            datetime.utcnow()
+        )
+
+        task.claimed_by = None
+
+        task.claimed_at = None
+
+        task.lease_expires_at = None
+
+        await self.db.commit()
+
+    # =====================================
+    # RELEASE
+    # =====================================
+
+    async def release_task(
+        self,
+        task_id
+    ):
+
+        stmt = (
+            select(Task)
+            .where(Task.id == task_id)
+        )
+
+        result = await self.db.execute(
+            stmt
+        )
+
+        task = result.scalar_one()
+
+        task.status = "pending"
+
+        task.claimed_by = None
+
+        task.claimed_at = None
+
+        task.started_at = None
+
+        task.lease_expires_at = None
+
+        await self.db.commit()
+
+    async def try_unlock_wait_for_task(
+            self,
+            downstream
+    ):
+        if downstream.task_type == MERGE_TTS_SEGMENTS:
+            return
+
+        wait_for = (
+                downstream.wait_for_task_types
+                or []
+        )
+
+        if not wait_for:
+            downstream.is_blocking = False
+            return
+
+        stmt = select(Task)
+
+        if downstream.chapter_id:
+
+            stmt = stmt.where(
+                Task.chapter_id
+                == downstream.chapter_id
+            )
+
+        elif downstream.batch_id:
+
+            stmt = stmt.where(
+                Task.batch_id
+                == downstream.batch_id
+            )
+
+        stmt = stmt.where(
+            Task.task_type.in_(wait_for)
+        )
+
+        with self.db.no_autoflush:
+
+            result = await self.db.execute(
+                stmt
+            )
+
+        tasks = result.scalars().all()
+
+        if len(tasks) < len(wait_for):
+            return
+
+        all_completed = all(
+
+            t.status == "completed"
+
+            for t in tasks
+        )
+
+        if not all_completed:
+            return
+
+        downstream.is_blocking = False
+
+        print(
+            "[TaskCompletionService] Unlocked",
+            downstream.task_type
+        )
+
+    async def update_downstream_payloads(
+            self,
+            completed_task
+    ):
+        REBUILD_AT_CLAIM = {
+
+            "compose_video_layers",
+
+            "merge_audio_into_video",
+
+            "merge_batch_videos",
+
+            "generate_batch_youtube_description",
+
+            "generate_batch_youtube_upload"
+        }
+
+        stmt = select(Task)
+
+        if completed_task.chapter_id:
+
+            stmt = stmt.where(
+                Task.chapter_id
+                == completed_task.chapter_id
+            )
+
+        elif completed_task.batch_id:
+
+            stmt = stmt.where(
+                Task.batch_id
+                == completed_task.batch_id
+            )
+
+        else:
+            return
+
+        result = await self.db.execute(
+            stmt
+        )
+
+        tasks = result.scalars().all()
+
+        for downstream in tasks:
+
+            if downstream.id == completed_task.id:
+                continue
+
+            if downstream.task_type in REBUILD_AT_CLAIM:
+                continue
+
+            wait_for = (
+                    downstream.wait_for_task_types
+                    or []
+            )
+
+            if (
+                    completed_task.task_type
+                    not in wait_for
+            ):
+                continue
+
+            payload = (
+                    downstream.payload
+                    or {}
+            )
+
+            payload.update(
+
+                build_downstream_payload(
+                    completed_task=
+                    completed_task,
+
+                    downstream_task=
+                    downstream
+                )
+            )
+
+            downstream.payload = payload
+
+
+    async def unlock_waiting_tasks(
+            self,
+            chapter_id,
+            batch_id
+    ):
+
+        stmt = (
+            select(Task)
+            .where(
+                Task.is_blocking == True
+            )
+        )
+
+        conditions = []
+
+        if chapter_id:
+            conditions.append(
+                Task.chapter_id
+                == chapter_id
+            )
+
+        if batch_id:
+            conditions.append(
+                Task.batch_id
+                == batch_id
+            )
+
+        if conditions:
+            stmt = stmt.where(
+                or_(*conditions)
+            )
+
+        result = await self.db.execute(
+            stmt
+        )
+
+        blocked_tasks = (
+            result.scalars().all()
+        )
+
+        for task in blocked_tasks:
+            await self.try_unlock_wait_for_task(
+                task
+            )

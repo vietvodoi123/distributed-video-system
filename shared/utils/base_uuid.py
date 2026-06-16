@@ -1,0 +1,12 @@
+import uuid
+
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import mapped_column
+
+
+def uuid_pk():
+    return mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        server_default="gen_random_uuid()"
+    )

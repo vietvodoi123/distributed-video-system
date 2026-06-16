@@ -1,0 +1,42 @@
+Create a cinematic anime webnovel thumbnail.
+
+        TITLE:
+        Xuyên Vào Tu Tiên Giới, Ta Dùng Công Nghệ Cải Tổ Cả Môn Phái!
+
+        STORY DESCRIPTION:
+        "[Tu tiên kiểu phàm nhân – không hệ thống, không gian lận, chỉ dựa vào năng lực!]
+
+Một thanh niên là nhà khoa học ở Trái Đất – Tôn Nghị – bất ngờ xuyên hồn đến thế giới tu tiên, trở thành một tạp dịch đệ tử không có thiên phú, không có bối cảnh.
+
+Nhưng nhờ vào kiến thức khoa học hiện đại và sự liều lĩnh, anh đã ôm được đùi lớn trong môn phái, sau đó bắt đầu cải cách toàn diện, nghiên cứu, phát minh đủ loại công nghệ!
+
+Phát minh ""Radar dò thám"": Có thể tìm ra linh dược, linh thú, côn trùng độc v.v...
+
+Giúp môn phái kiếm bộn tiền và nâng tầm sức mạnh!"
+
+        THUMBNAIL HOOK:
+        Xuyên Vào Tu Tiên Giới, Ta Dùng Công Nghệ Cải Tổ Cả Môn Phái!
+
+        STYLE REQUIREMENTS:
+        - anime cinematic scene
+        - emotional lighting
+        - dramatic composition
+        - highly detailed
+        - ultra quality
+        - youtube thumbnail style
+        - eye catching
+        - vibrant contrast
+
+        IMPORTANT:
+        - absolutely no text
+        - no letters
+        - no words
+        - no typography
+        - no captions
+        - no subtitles
+        - no watermark
+        - no signature
+        - no logo
+        - no UI
+        - clean image background only
+        - text-free image

@@ -1,0 +1,12 @@
+config/client_secret.json
+
+data/tokens/
+
+.env
+client_secret.json
+shared/config/client_secret.json
+
+shared/runtime/templates/reddit_story/node_modules/
+
+.idea/
+*.iml

@@ -1,0 +1,51 @@
+Create a cinematic anime webnovel thumbnail.
+
+        TITLE:
+        Đứa Trẻ Chăn Trâu Mang Ngũ Linh Căn , Hành Trình Nghịch Thiên Tranh Mệnh Với Trời
+
+        STORY DESCRIPTION:
+        "【Cực phẩm đề cử + Phàm Nhân Tu Tiên】
+
+Vốn chỉ là một đứa trẻ chăn trâu, nhưng lại ngoài ý muốn bước lên con đường tu tiên.
+
+Mang phế linh căn ngũ hệ bị người đời xem thường, vậy mà tu vi lại tăng tiến vượt bậc.
+
+Tuy nhiều lần cận kề cái chết, nhưng cuối cùng vẫn luôn hóa dữ thành lành.
+
+Con đường tu tiên đầy gian nan?
+Cường địch khắp nơi?
+Lừa lọc, phản bội, cá lớn nuốt cá bé?
+
+Lý Tranh Thiên — một đứa trẻ chăn trâu không cha không mẹ.
+
+Trong mắt người khác, hắn chỉ là kẻ tư chất thấp kém, không quyền không thế, lại còn ngu ngốc không biết thức thời.
+
+Nhưng hắn lại dùng chính cách của mình…
+Từng bước mở ra một đại đạo tu tiên hoàn toàn khác biệt!"
+
+        THUMBNAIL HOOK:
+        Đứa Trẻ Chăn Trâu Mang Ngũ Linh Căn , Hành Trình Nghịch Thiên Tranh Mệnh Với Trời
+
+        STYLE REQUIREMENTS:
+        - anime cinematic scene
+        - emotional lighting
+        - dramatic composition
+        - highly detailed
+        - ultra quality
+        - youtube thumbnail style
+        - eye catching
+        - vibrant contrast
+
+        IMPORTANT:
+        - absolutely no text
+        - no letters
+        - no words
+        - no typography
+        - no captions
+        - no subtitles
+        - no watermark
+        - no signature
+        - no logo
+        - no UI
+        - clean image background only
+        - text-free image

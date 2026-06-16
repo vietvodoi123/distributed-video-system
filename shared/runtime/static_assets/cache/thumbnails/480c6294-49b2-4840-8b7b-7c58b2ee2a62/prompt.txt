@@ -1,0 +1,49 @@
+Create a cinematic anime webnovel thumbnail.
+
+        TITLE:
+        Tụ Bảo Tiên Bồn Biến 1 Thành 2, Ta Từ Tạp Dịch Trở Thành Cường Giả
+
+        STORY DESCRIPTION:
+        "Đệ tử tạp dịch của Thái Hư Môn – Hạ Bình Sinh – trong một lần tình cờ đã có được một chiếc chậu thần bí.
+
+Từ đó, con đường tu tiên của hắn hoàn toàn thay đổi.
+
+Chỉ cần bỏ đan dược hạ phẩm vào trong chậu,
+một ngày sau, nó sẽ biến thành hai viên tụ khí đan cực phẩm.
+
+Công pháp bình thường bỏ vào…
+sẽ biến thành công pháp thiên giai.
+
+Pháp bảo, linh thảo, linh thạch và đủ loại bảo vật…
+đều có thể bỏ vào trong chậu để tăng cường và nâng cấp.
+
+Nhờ chiếc Tụ Bảo Tiên Bồn,
+Hạ Bình Sinh từng bước bước lên con đường tu tiên mạnh nhất,
+hướng tới đỉnh phong cường giả."
+
+        THUMBNAIL HOOK:
+        Tụ Bảo Tiên Bồn Biến 1 Thành 2, Ta Từ Tạp Dịch Trở Thành Cường Giả
+
+        STYLE REQUIREMENTS:
+        - anime cinematic scene
+        - emotional lighting
+        - dramatic composition
+        - highly detailed
+        - ultra quality
+        - youtube thumbnail style
+        - eye catching
+        - vibrant contrast
+
+        IMPORTANT:
+        - absolutely no text
+        - no letters
+        - no words
+        - no typography
+        - no captions
+        - no subtitles
+        - no watermark
+        - no signature
+        - no logo
+        - no UI
+        - clean image background only
+        - text-free image
