@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import text
+from sqlalchemy import Text,text
 from sqlalchemy import (
     String,
     Integer,
@@ -17,7 +17,6 @@ from sqlalchemy.orm import (
 )
 
 from shared.db.base import Base
-
 
 class Chapter(Base):
     __tablename__ = "chapters"
@@ -85,17 +84,22 @@ class Chapter(Base):
 
     # text pipeline
     raw_text: Mapped[str | None] = mapped_column(
-        String,
+        Text,
+        nullable=True
+    )
+
+    cleaned_text: Mapped[str | None] = mapped_column(
+        Text,
         nullable=True
     )
 
     translated_text: Mapped[str | None] = mapped_column(
-        String,
+        Text,
         nullable=True
     )
 
     final_script: Mapped[str | None] = mapped_column(
-        String,
+        Text,
         nullable=True
     )
 

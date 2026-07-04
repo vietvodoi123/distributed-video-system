@@ -59,7 +59,6 @@ class CrawlChapterExecutor(
         )
 
         if not source_url:
-
             raise ValueError(
                 "Missing source_url"
             )
@@ -69,28 +68,14 @@ class CrawlChapterExecutor(
             "http"
         )
 
-        storage = (
-            runtime_context
-            .artifact_storage
-        )
-
-        # =====================================
-        # HTTP API JSON
-        # =====================================
+        # ===============================
+        # HTTP JSON API
+        # ===============================
 
         if engine_name == "http":
 
-
-            print(
-                "[CrawlChapterExecutor] "
-                f"API request: "
-                f"{source_url}"
-            )
-
             resp = requests.get(
-
                 source_url,
-
                 timeout=(10, 20)
             )
 
@@ -99,50 +84,30 @@ class CrawlChapterExecutor(
             data = resp.json()
 
             title = (
-
                 data.get(
                     "chaptername",
                     ""
                 )
-
                 .replace("\xa0", " ")
-
                 .strip()
             )
 
-            raw_cn_content = (
-
+            content = (
                 data.get(
                     "txt",
                     ""
                 )
-
                 .replace("\xa0", " ")
-
                 .strip()
             )
 
-            raw_text = (
-                f"{title}\n\n"
-                f"{raw_cn_content}"
-            ).strip()
-
-            html = ""
-
-        # =====================================
-        # PLAYWRIGHT ENGINE
-        # =====================================
+        # ===============================
+        # PLAYWRIGHT
+        # ===============================
 
         elif engine_name == "playwright":
 
-            print(
-                "[CrawlChapterExecutor] "
-                "engine playwright"
-            )
-
-            engine = (
-                PlaywrightCrawlerEngine()
-            )
+            engine = PlaywrightCrawlerEngine()
 
             resolver = ChapterResolver(
                 engine=engine
@@ -151,26 +116,20 @@ class CrawlChapterExecutor(
             chapter_data = (
                 await resolver.get_chapter(
                     source_url,
-
-                    css_title=
-                    css_title,
-
-                    css_content=
-                    css_content,
-
-                    css_next=
-                    css_next
+                    css_title=css_title,
+                    css_content=css_content,
+                    css_next=css_next
                 )
             )
 
             if not chapter_data:
-
                 raise ValueError(
                     "Failed to resolve chapter"
                 )
 
             title = (
-                chapter_data.get(
+                chapter_data
+                .get(
                     "title",
                     ""
                 )
@@ -178,37 +137,21 @@ class CrawlChapterExecutor(
             )
 
             content = (
-                chapter_data.get(
+                chapter_data
+                .get(
                     "content",
                     ""
                 )
                 .strip()
             )
 
-            raw_text = (
-                f"{title}\n\n"
-                f"{content}"
-            ).strip()
-
-            html = chapter_data.get(
-                "html",
-                ""
-            )
-
-        # =====================================
-        # HTTP HTML ENGINE
-        # =====================================
+        # ===============================
+        # BS4
+        # ===============================
 
         elif engine_name == "bs4":
 
-            print(
-                "[CrawlChapterExecutor] "
-                "engine http"
-            )
-
-            engine = (
-                HttpCrawlerEngine()
-            )
+            engine = HttpCrawlerEngine()
 
             resolver = ChapterResolver(
                 engine=engine
@@ -217,26 +160,20 @@ class CrawlChapterExecutor(
             chapter_data = (
                 await resolver.get_chapter(
                     source_url,
-
-                    css_title=
-                    css_title,
-
-                    css_content=
-                    css_content,
-
-                    css_next=
-                    css_next
+                    css_title=css_title,
+                    css_content=css_content,
+                    css_next=css_next
                 )
             )
 
             if not chapter_data:
-
                 raise ValueError(
                     "Failed to resolve chapter"
                 )
 
             title = (
-                chapter_data.get(
+                chapter_data
+                .get(
                     "title",
                     ""
                 )
@@ -244,156 +181,71 @@ class CrawlChapterExecutor(
             )
 
             content = (
-                chapter_data.get(
+                chapter_data
+                .get(
                     "content",
                     ""
                 )
                 .strip()
             )
-
-            raw_text = (
-                f"{title}\n\n"
-                f"{content}"
-            ).strip()
-
-            html = chapter_data.get(
-                "html",
-                ""
-            )
-
-        # =====================================
-        # INVALID ENGINE
-        # =====================================
 
         else:
 
             raise RuntimeError(
-                f"Unsupported engine: "
-                f"{engine_name}"
+                f"Unsupported engine: {engine_name}"
             )
 
-        # =====================================
-        # VALIDATE CONTENT
-        # =====================================
+        # ===============================
+        # BUILD TEXT
+        # ===============================
+
+        raw_text = (
+            f"{title}\n\n"
+            f"{content}"
+        ).strip()
+
 
         if not raw_text:
 
             raise ValueError(
-                "Chapter content is empty"
+                "Chapter content empty"
             )
 
-        # =====================================
-        # SAVE RAW TEXT
-        # =====================================
 
-        await storage.write_text(
+        # ===============================
+        # SAVE TO DATABASE
+        # ===============================
 
-            runtime_context.raw_text_path,
-
-            raw_text
+        chapter = (
+            runtime_context
+            .chapter
         )
 
-        # =====================================
-        # SAVE HTML
-        # =====================================
+        chapter.raw_text = raw_text
 
-        if html:
+        chapter.original_title = title
 
-            await storage.write_text(
+        chapter.status = "crawled"
 
-                runtime_context.raw_html_path,
+        runtime_context.db.commit()
 
-                html
-            )
-
-        # =====================================
-        # SAVE METADATA
-        # =====================================
-
-        metadata = {
-
-            "title":
-            title,
-
-            "source_url":
-            source_url,
-
-            "engine":
-            engine_name,
-
-            "chapter_number":
-            runtime_context.chapter_number,
-
-            "crawled_at":
-            datetime.utcnow().isoformat(),
-
-            "content_length":
-            len(raw_text)
-        }
 
         print(
             "[CrawlChapterExecutor]",
-            runtime_context.raw_text_path
+            "saved chapter",
+            chapter.chapter_number
         )
 
-        await storage.write_json(
-
-            runtime_context.raw_metadata_path,
-
-            metadata
-        )
-
-        # =====================================
-        # SAVE MANIFEST
-        # =====================================
-
-        manifest = {
-
-            "success":
-            True,
-
-            "executor":
-            self.__class__.__name__,
-
-            "stage":
-            "crawl_chapter",
-
-            "artifacts": {
-
-                "raw_text":
-                runtime_context.raw_text_path,
-
-                "raw_html":
-                runtime_context.raw_html_path,
-
-                "metadata":
-                runtime_context.raw_metadata_path
-            }
-        }
-
-        await storage.write_json(
-
-            runtime_context.crawl_manifest_path,
-
-            manifest
-        )
-
-        print(
-
-            "[CrawlChapterExecutor] "
-
-            f"Chapter "
-
-            f"{runtime_context.chapter_number} "
-
-            f"crawled successfully"
-        )
 
         return {
 
             "result": {
 
-                "title": title,
+                "chapter_id":
+                str(chapter.id),
+
+                "title":
+                title,
 
                 "content_length":
                 len(raw_text),
@@ -403,12 +255,5 @@ class CrawlChapterExecutor(
                     "output_length":
                     len(raw_text)
                 }
-            },
-
-            "output_path":
-            runtime_context.raw_text_path,
-
-            "manifest_path":
-            runtime_context.crawl_manifest_path
+            }
         }
-
