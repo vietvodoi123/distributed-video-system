@@ -48,7 +48,7 @@ CHAPTER_PIPELINE = [
         "translation",
 
         "required_capabilities": [
-            "network"
+            "cpu"
         ],
         "wait_for": [
             PREPROCESS_TEXT

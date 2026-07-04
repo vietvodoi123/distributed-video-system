@@ -299,7 +299,7 @@ class DiscoveryService:
 
         all_chapters = []
 
-        page = 1
+
 
         page_param = (
             website.crawler_config.get(
@@ -319,14 +319,19 @@ class DiscoveryService:
         # GET LATEST DB CHAPTER
         # =========================
 
-        latest_chapter = (
-            await self.registry.get_latest_chapter_number(
-                story_id=story_source.story_id,
-                story_source_id=story_source.id
-            )
+        page = 1
+
+        # =========================
+        # GET LATEST DB CHAPTER
+        # =========================
+
+        latest_chapter = await self.registry.get_latest_chapter_number(
+            story_id=story_source.story_id,
+            story_source_id=story_source.id
         )
 
-        stop_discovery = False
+        if latest_chapter > 0:
+            page = ((latest_chapter - 1) // chap_per_page) + 1
 
         while True:
 
@@ -336,58 +341,26 @@ class DiscoveryService:
                 page_param=page_param
             )
 
-            html = await engine.get_html(
-                page_url
-            )
+            print(f"Crawling page {page}: {page_url}")
 
-            chapters = (
-                parser.extract_chapters(
-                    html=html,
-                    source_url=page_url
-                )
-            )
+            html = await engine.get_html(page_url)
 
-            # =========================
-            # NO CHAPTERS
-            # =========================
+            chapters = parser.extract_chapters(
+                html=html,
+                source_url=page_url
+            )
 
             if not chapters:
                 break
 
-            # =========================
-            # INCREMENTAL SYNC
-            # =========================
-
-            new_chapters_found = False
-
             for chapter in chapters:
 
-                chapter_number = int(
-                    chapter.chapter_number
-                )
+                chapter_number = int(chapter.chapter_number)
 
-                if (
-                        chapter_number
-                        <= latest_chapter
-                ):
+                if chapter_number <= latest_chapter:
                     continue
 
-                chapter.chapter_number = (
-                    chapter_number
-                )
-
-                new_chapters_found = True
-
-                all_chapters.append(
-                    chapter
-                )
-
-            if not new_chapters_found:
-                break
-
-            # =========================
-            # LAST PAGE
-            # =========================
+                all_chapters.append(chapter)
 
             if len(chapters) < chap_per_page:
                 break
@@ -395,6 +368,7 @@ class DiscoveryService:
             page += 1
 
         return all_chapters
+
     # =====================================
     # BUILD PAGE URL
     # =====================================

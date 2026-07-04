@@ -221,18 +221,10 @@ class TaskCompletionService:
         # ==============================
 
         stmt = (
-
             select(Task)
-
-            .where(
-                Task.chapter_id
-                == task.chapter_id
-            )
-
-            .where(
-                Task.task_type
-                == MERGE_TTS_SEGMENTS
-            )
+            .where(Task.chapter_id == task.chapter_id)
+            .where(Task.batch_id == task.batch_id)
+            .where(Task.task_type == MERGE_TTS_SEGMENTS)
         )
 
         result = await self.db.execute(
@@ -242,7 +234,10 @@ class TaskCompletionService:
         merge_task = (
             result.scalars().first()
         )
-
+        print(
+            "[MERGE TASK]",
+            merge_task
+        )
         if not merge_task:
             return
 
@@ -296,7 +291,10 @@ class TaskCompletionService:
 
             len(tts_tasks)
         )
-
+        print(
+            "[ALL COMPLETED]",
+            all_completed
+        )
         if not all_completed:
             return
 
@@ -305,14 +303,13 @@ class TaskCompletionService:
         # ==============================
 
         segments = []
-
+        print(result)
         for t in tts_tasks:
             result = t.result or {}
             segments.append({
                 "line_index": result["line_index"],
-                "raw_text": result["raw_text"],
-                "refined_text": result["refined_text"],
-                "audio_path": result["audio_path"],
+                "line_text": result["line_text"],
+                "output_path": result["output_path"],
                 "duration": result.get("duration", 0)
             })
 
@@ -391,7 +388,7 @@ class TaskCompletionService:
 
                     payload={
                         "line_index": segment["line_index"],
-                        "raw_text": segment["raw_text"],
+                        "line_text": segment["line_text"],
                         "voice": segment["voice"],
                         "output_path": segment["output_path"]
                     }
