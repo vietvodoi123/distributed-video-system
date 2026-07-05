@@ -45,11 +45,13 @@ from shared.contracts.enums.task_types import (
     RENDER_TEMPLATE,
     MERGE_TTS_SEGMENTS,
     GENERATE_BATCH_THUMBNAIL,
-    GENERATE_YOUTUBE_DESCRIPTION,LINE_TASK,CRAWL_CHAPTER
+    GENERATE_YOUTUBE_DESCRIPTION,LINE_TASK,CRAWL_CHAPTER, TRANSLATE_TEXT
 )
 def serialize_task_for_claim(task):
-
-    if task.task_type == LINE_TASK:
+    if task.task_type in [
+        LINE_TASK,
+        TRANSLATE_TEXT
+    ]:
 
         return serialize_task_for_worker(task)
 

@@ -42,14 +42,15 @@ CHAPTER_PIPELINE = [
 
     {
         "task_type":
-        TRANSLATE_TEXT,
+            TRANSLATE_TEXT,
 
         "task_stage":
-        "translation",
+            "translation",
 
         "required_capabilities": [
-            "cpu"
+            "translation"
         ],
+
         "wait_for": [
             PREPROCESS_TEXT
         ]

@@ -157,7 +157,8 @@ def serialize_task_for_worker(task):
 
         "task_group":
             task.task_group,
-
+        "chapter_id":
+            task.chapter_id,
         "payload":
             task.payload or {}
     }
