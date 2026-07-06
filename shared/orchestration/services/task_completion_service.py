@@ -1,7 +1,8 @@
 from datetime import datetime
-
+from apps.api.models.batch import Batch
 from sqlalchemy import (
-    select,delete,func,
+    select,delete,
+    update,
     or_
 )
 
@@ -125,17 +126,20 @@ class TaskCompletionService:
                 task.task_type
                 == GENERATE_BATCH_YOUTUBE_UPLOAD
         ):
+
             await self.handle_batch_completed(
                 task
             )
 
-        # =====================================
-        # DAG PAYLOAD UPDATE
-        # =====================================
+        else:
 
-        await self.update_downstream_payloads(
-            task
-        )
+            # =====================================
+            # DAG PAYLOAD UPDATE
+            # =====================================
+
+            await self.update_downstream_payloads(
+                task
+            )
 
         # =====================================
         # COMMIT TASK FIRST
@@ -161,12 +165,16 @@ class TaskCompletionService:
         # DAG UNLOCK
         # =====================================
 
-        await self.unlock_waiting_tasks(
-            task.chapter_id,
-            task.batch_id
-        )
+        if (
+                task.task_type
+                != GENERATE_BATCH_YOUTUBE_UPLOAD
+        ):
+            await self.unlock_waiting_tasks(
+                task.chapter_id,
+                task.batch_id
+            )
 
-        await self.db.commit()
+            await self.db.commit()
 
     async def handle_batch_completed(
             self,
@@ -174,8 +182,27 @@ class TaskCompletionService:
     ):
 
         print(
-            "[BATCH CLEANUP]",
+            "[BATCH COMPLETED]",
             task.batch_id
+        )
+
+        # ======================
+        # UPDATE BATCH STATUS
+        # ======================
+
+        await self.db.execute(
+
+            update(Batch)
+
+            .where(
+                Batch.id
+                ==
+                task.batch_id
+            )
+
+            .values(
+                status="completed"
+            )
         )
 
         # ======================
@@ -188,7 +215,8 @@ class TaskCompletionService:
 
             .where(
                 Task.batch_id
-                == task.batch_id
+                ==
+                task.batch_id
             )
         )
 
@@ -202,7 +230,8 @@ class TaskCompletionService:
 
             .where(
                 BatchChapter.batch_id
-                == task.batch_id
+                ==
+                task.batch_id
             )
         )
 

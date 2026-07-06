@@ -1,7 +1,6 @@
 from apps.api.models.batch import Batch
 from apps.api.models.batch_chapter import BatchChapter
 from apps.api.models.chapter import Chapter
-from sqlalchemy import update
 from sqlalchemy import func
 from datetime import (
     datetime,
@@ -12,7 +11,7 @@ from sqlalchemy import (
     and_,
     or_,
     select,
-    case
+    case,update
 )
 
 
