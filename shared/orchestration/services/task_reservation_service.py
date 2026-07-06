@@ -1,7 +1,7 @@
-from apps.api.models.story import Story
 from apps.api.models.batch import Batch
 from apps.api.models.batch_chapter import BatchChapter
 from apps.api.models.chapter import Chapter
+from sqlalchemy import update
 from sqlalchemy import func
 from datetime import (
     datetime,
@@ -15,9 +15,6 @@ from sqlalchemy import (
     case
 )
 
-from sqlalchemy.orm import (
-    selectinload
-)
 
 from apps.api.models.task import (
     Task
@@ -61,6 +58,7 @@ def serialize_task_for_claim(task):
 
 
 class TaskReservationService:
+
     MAX_RESERVED_TASKS = 10
 
     MAX_TASK_TYPE_LIMITS = {
@@ -68,6 +66,7 @@ class TaskReservationService:
         TRANSLATE_TEXT: 1,
         LINE_TASK: 1,
     }
+
 
     def __init__(self, db):
 
@@ -81,9 +80,6 @@ class TaskReservationService:
             ResourceEstimator()
         )
 
-    # =====================================
-    # RESERVE TASKS
-    # =====================================
 
     async def reserve_tasks(
         self,
@@ -91,21 +87,275 @@ class TaskReservationService:
         worker_id: str,
         capabilities: list[str],
         worker_capacity_cost: float,
-        max_candidates: int = 100,
+        max_candidates: int = 30,
         lease_seconds: int = 300
     ):
 
-        # =====================================
-        # NO AVAILABLE CAPACITY
-        # =====================================
-
         if worker_capacity_cost <= 0:
+            return None
 
+
+        # =====================================
+        # 1. LOAD WORKER RUNNING COUNT
+        # =====================================
+
+        running_counts = (
+            await self.load_worker_running_counts(
+                worker_id
+            )
+        )
+
+
+        # =====================================
+        # 2. LOAD CANDIDATES ONLY
+        # =====================================
+
+        candidates = (
+            await self.load_candidates(
+                capabilities,
+                max_candidates
+            )
+        )
+
+
+        if not candidates:
+            return None
+
+
+        # =====================================
+        # 3. SELECT WITHOUT QUERY
+        # =====================================
+
+        selected = []
+
+
+        selected_counts = {
+
+            task_type:
+                running_counts.get(
+                    task_type,
+                    0
+                )
+
+            for task_type
+            in self.MAX_TASK_TYPE_LIMITS
+        }
+
+
+        for task in candidates:
+
+
+            limit = (
+                self.MAX_TASK_TYPE_LIMITS
+                .get(task.task_type)
+            )
+
+
+            if limit is not None:
+
+                if (
+                    selected_counts[
+                        task.task_type
+                    ]
+                    >= limit
+                ):
+                    continue
+
+
+            selected.append(task)
+
+            if (
+                len(selected)
+                >= self.MAX_RESERVED_TASKS
+            ):
+                break
+
+
+
+        if not selected:
+            return None
+
+
+
+        # =====================================
+        # 4. PREPARE + CLAIM ONLY SELECTED
+        # =====================================
+
+
+        final_tasks = []
+
+        used_cost = 0
+
+
+        for task in selected:
+
+
+            await self.rebuild_payload_from_dependencies(
+                task
+            )
+
+
+            profile = await (
+                self.resource_estimator
+                .estimate(
+                    task=task,
+                    db=self.db
+                )
+            )
+
+
+            task_cost = (
+                profile.total_cost()
+            )
+
+
+            if (
+                used_cost + task_cost
+                >
+                worker_capacity_cost
+            ):
+                continue
+
+
+
+            leased = await (
+                self.lease_service
+                .claim_lease(
+                    task=task,
+                    worker_id=worker_id,
+                    lease_seconds=lease_seconds
+                )
+            )
+
+
+            if not leased:
+                continue
+
+
+            final_tasks.append(
+                {
+                    "task": leased,
+                    "cost": task_cost
+                }
+            )
+
+            if task.task_type in selected_counts:
+                selected_counts[
+                    task.task_type
+                ] += 1
+
+            used_cost += task_cost
+
+
+
+        if not final_tasks:
             return None
 
         # =====================================
-        # CHECK EXISTING WORKER TASK LIMIT
+        # MARK BATCH RUNNING
         # =====================================
+
+        await self.mark_batches_running(
+            final_tasks
+        )
+
+        # =====================================
+        # CREATE RESERVATION
+        # =====================================
+
+
+        reservation = TaskReservation(
+
+            worker_id=worker_id,
+
+
+            task_ids=[
+
+                str(
+                    item["task"].id
+                )
+
+                for item
+                in final_tasks
+            ],
+
+
+            lease_seconds=lease_seconds,
+
+
+            expires_at=(
+
+                datetime.utcnow()
+
+                +
+
+                timedelta(
+                    seconds=lease_seconds
+                )
+            ),
+
+
+            status="active"
+        )
+
+
+        self.db.add(
+            reservation
+        )
+
+
+        await self.db.commit()
+
+
+
+        return {
+
+            "reservation_id":
+                reservation.id,
+
+
+            "used_cost":
+                used_cost,
+
+
+            "tasks": [
+
+                {
+
+                    "task_id":
+                        str(item["task"].id),
+
+
+                    "task_type":
+                        item["task"].task_type,
+
+
+                    "task_group":
+                        item["task"].task_group,
+
+
+                    "task_cost":
+                        item["cost"],
+
+
+                    "task_data":
+                        serialize_task_for_claim(
+                            item["task"]
+                        )
+                }
+
+
+                for item
+                in final_tasks
+            ]
+        }
+
+
+
+    async def load_worker_running_counts(
+        self,
+        worker_id
+    ):
 
         result = await self.db.execute(
 
@@ -122,75 +372,55 @@ class TaskReservationService:
                 Task.status == "running"
             )
 
-            .where(
-                Task.task_type.in_(
-                    list(
-                        self.MAX_TASK_TYPE_LIMITS.keys()
-                    )
-                )
-            )
-
             .group_by(
                 Task.task_type
             )
         )
 
-        running_counts = {
+
+        return {
+
             task_type: count
+
             for task_type, count
             in result.all()
         }
 
-        # =====================================
-        # LOAD CANDIDATES
-        # =====================================
 
-        stmt = (
+
+
+    async def load_candidates(
+        self,
+        capabilities,
+        max_candidates
+    ):
+
+        result = await self.db.execute(
 
             select(Task)
 
-            .options(
 
-                # dependency
-                selectinload(
-                    Task.depends_on_task
-                ),
-
-                # task.chapter.story.channel
-                selectinload(
-                    Task.chapter
-                )
-                .selectinload(
-                    Chapter.story
-                )
-                .selectinload(
-                    Story.channel
-                ),
-
-                # task.batch.story.channel
-                selectinload(
-                    Task.batch
-                )
-                .selectinload(
-                    Batch.story
-                )
-                .selectinload(
-                    Story.channel
-                )
+            .join(
+                Batch,
+                Task.batch_id == Batch.id,
+                isouter=True
             )
+
 
             .where(
 
                 Task.is_blocking == False,
 
-                Task.required_capabilities.contained_by(
+
+                Task.required_capabilities
+                .contained_by(
                     capabilities
                 ),
+
 
                 or_(
 
                     Task.status == "pending",
-
                     and_(
 
                         Task.status == "running",
@@ -200,318 +430,48 @@ class TaskReservationService:
                         ),
 
                         Task.lease_expires_at
-                        < datetime.utcnow()
+                        <
+                        datetime.utcnow()
                     )
                 )
             )
 
+
             .order_by(
 
-                # ==========================
-                # ưu tiên batch đang chạy
-                # ==========================
                 case(
                     (
-                        Task.batch_id.in_(
-
-                            select(
-                                Task.batch_id
-                            )
-                            .where(
-                                Task.status.in_(
-                                    [
-                                        "running",
-                                        "completed"
-                                    ]
-                                )
-                            )
-                            .where(
-                                Task.batch_id.is_not(None)
-                            )
-                            .distinct()
-
-                        ),
+                        Batch.status == "running",
                         0
                     ),
 
                     else_=1
                 ),
 
+
                 Task.priority.desc(),
+
 
                 Task.created_at.asc()
             )
 
-            .limit(max_candidates)
+
+            .limit(
+                max_candidates
+            )
 
             .with_for_update(
+                of=Task,
                 skip_locked=True
             )
         )
 
-        result = await self.db.execute(
-            stmt
+
+        return (
+            result
+            .scalars()
+            .all()
         )
-
-        candidate_tasks = (
-            result.scalars().all()
-        )
-
-        if not candidate_tasks:
-
-            return None
-
-        # =====================================
-        # ESTIMATE COST
-        # =====================================
-
-        estimated_tasks = []
-
-        for task in candidate_tasks:
-
-            await self.db.refresh(task)
-
-            await self.rebuild_payload_from_dependencies(
-                task
-            )
-            try:
-
-                profile = await (
-
-                    self.resource_estimator
-                    .estimate(
-
-                        task=task,
-
-                        db=self.db
-                    )
-                )
-
-                task_cost = (
-                    profile.total_cost()
-                )
-
-                estimated_tasks.append(
-
-                    {
-                        "task": task,
-                        "profile": profile,
-                        "cost": task_cost
-                    }
-                )
-
-                print(
-
-                    "[TaskCost]",
-
-                    task.task_type,
-
-                    task_cost
-                )
-
-            except Exception as ex:
-
-                print(
-
-                    "[ResourceEstimator]",
-
-                    task.task_type,
-
-                    str(ex)
-                )
-
-        # =====================================
-        # SELECT TASKS
-        # =====================================
-
-        used_cost = 0
-
-        selected_tasks = []
-
-        selected_task_counts = {
-            task_type: running_counts.get(
-                task_type,
-                0
-            )
-
-            for task_type
-            in self.MAX_TASK_TYPE_LIMITS
-        }
-
-        for item in estimated_tasks:
-
-            task = item["task"]
-
-            task_cost = item["cost"]
-
-            # ==============================
-            # LIMIT BY TASK TYPE
-            # ==============================
-
-            task_limit = (
-                self.MAX_TASK_TYPE_LIMITS
-                .get(task.task_type)
-            )
-
-            if task_limit is not None:
-
-                if (
-                        selected_task_counts[
-                            task.task_type
-                        ]
-                        >= task_limit
-                ):
-                    continue
-            if (
-
-                len(selected_tasks)
-
-                >=
-
-                self.MAX_RESERVED_TASKS
-            ):
-
-                break
-
-            # ==============================
-            # COST CHECK
-            # ==============================
-
-            if (
-
-                used_cost + task_cost
-
-                >
-
-                worker_capacity_cost
-            ):
-
-                continue
-
-            # ==============================
-            # CLAIM LEASE
-            # ==============================
-
-            leased = (
-
-                await self.lease_service
-                .claim_lease(
-
-                    task=task,
-
-                    worker_id=worker_id,
-
-                    lease_seconds=lease_seconds
-                )
-            )
-
-            if not leased:
-
-                continue
-
-            selected_tasks.append(
-
-                {
-                    "task": leased,
-                    "cost": task_cost
-                }
-            )
-            if task.task_type in selected_task_counts:
-                selected_task_counts[
-                    task.task_type
-                ] += 1
-            used_cost += task_cost
-
-
-        # =====================================
-        # NOTHING SELECTED
-        # =====================================
-
-        if not selected_tasks:
-
-            return None
-
-        # =====================================
-        # CREATE RESERVATION
-        # =====================================
-
-        reservation = TaskReservation(
-
-            worker_id=worker_id,
-
-            task_ids=[
-
-                str(
-                    item["task"].id
-                )
-
-                for item in selected_tasks
-            ],
-
-            lease_seconds=lease_seconds,
-
-            expires_at=(
-
-                datetime.utcnow()
-
-                +
-
-                timedelta(
-                    seconds=lease_seconds
-                )
-            ),
-
-            status="active"
-        )
-
-        self.db.add(
-            reservation
-        )
-
-        await self.db.commit()
-
-        # =====================================
-        # LOG
-        # =====================================
-
-        # =====================================
-        # RETURN
-        # =====================================
-
-        return {
-
-            "reservation_id":
-                reservation.id,
-
-            "used_cost":
-                used_cost,
-
-            "tasks": [
-
-                {
-                    "task_id":
-                        str(item["task"].id),
-
-                    "task_type":
-                        item["task"].task_type,
-
-                    "task_group":
-                        item["task"].task_group,
-
-                    "task_cost":
-                        item["cost"],
-
-                    "task_data":
-                        serialize_task_for_claim(
-                            item["task"]
-                        )
-                }
-
-                for item in selected_tasks
-            ]
-        }
-
-
     async def rebuild_payload_from_dependencies(
             self,
             task: Task
@@ -858,3 +818,39 @@ class TaskReservationService:
             }
 
             return
+
+    async def mark_batches_running(
+            self,
+            tasks
+    ):
+
+        batch_ids = {
+
+            item["task"].batch_id
+
+            for item in tasks
+
+            if item["task"].batch_id
+        }
+
+        if not batch_ids:
+            return
+
+        await self.db.execute(
+
+            update(Batch)
+
+            .where(
+                Batch.id.in_(
+                    batch_ids
+                )
+            )
+
+            .where(
+                Batch.status == "pending"
+            )
+
+            .values(
+                status="running"
+            )
+        )
