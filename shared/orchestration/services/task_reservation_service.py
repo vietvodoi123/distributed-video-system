@@ -2,6 +2,7 @@ from apps.api.models.story import Story
 from apps.api.models.batch import Batch
 from apps.api.models.batch_chapter import BatchChapter
 from apps.api.models.chapter import Chapter
+from sqlalchemy import func
 from datetime import (
     datetime,
     timedelta
@@ -10,7 +11,8 @@ from datetime import (
 from sqlalchemy import (
     and_,
     or_,
-    select
+    select,
+    case
 )
 
 from sqlalchemy.orm import (
@@ -59,9 +61,13 @@ def serialize_task_for_claim(task):
 
 
 class TaskReservationService:
-
     MAX_RESERVED_TASKS = 10
-    MAX_CRAWL_TASKS = 2
+
+    MAX_TASK_TYPE_LIMITS = {
+        CRAWL_CHAPTER: 2,
+        TRANSLATE_TEXT: 1,
+        LINE_TASK: 1,
+    }
 
     def __init__(self, db):
 
@@ -96,6 +102,44 @@ class TaskReservationService:
         if worker_capacity_cost <= 0:
 
             return None
+
+        # =====================================
+        # CHECK EXISTING WORKER TASK LIMIT
+        # =====================================
+
+        result = await self.db.execute(
+
+            select(
+                Task.task_type,
+                func.count(Task.id)
+            )
+
+            .where(
+                Task.claimed_by == worker_id
+            )
+
+            .where(
+                Task.status == "running"
+            )
+
+            .where(
+                Task.task_type.in_(
+                    list(
+                        self.MAX_TASK_TYPE_LIMITS.keys()
+                    )
+                )
+            )
+
+            .group_by(
+                Task.task_type
+            )
+        )
+
+        running_counts = {
+            task_type: count
+            for task_type, count
+            in result.all()
+        }
 
         # =====================================
         # LOAD CANDIDATES
@@ -162,6 +206,36 @@ class TaskReservationService:
             )
 
             .order_by(
+
+                # ==========================
+                # ưu tiên batch đang chạy
+                # ==========================
+                case(
+                    (
+                        Task.batch_id.in_(
+
+                            select(
+                                Task.batch_id
+                            )
+                            .where(
+                                Task.status.in_(
+                                    [
+                                        "running",
+                                        "completed"
+                                    ]
+                                )
+                            )
+                            .where(
+                                Task.batch_id.is_not(None)
+                            )
+                            .distinct()
+
+                        ),
+                        0
+                    ),
+
+                    else_=1
+                ),
 
                 Task.priority.desc(),
 
@@ -253,7 +327,17 @@ class TaskReservationService:
         used_cost = 0
 
         selected_tasks = []
-        selected_crawl_tasks = 0
+
+        selected_task_counts = {
+            task_type: running_counts.get(
+                task_type,
+                0
+            )
+
+            for task_type
+            in self.MAX_TASK_TYPE_LIMITS
+        }
+
         for item in estimated_tasks:
 
             task = item["task"]
@@ -261,11 +345,22 @@ class TaskReservationService:
             task_cost = item["cost"]
 
             # ==============================
-            # LIMIT TASK COUNT
+            # LIMIT BY TASK TYPE
             # ==============================
-            if task.task_type == CRAWL_CHAPTER:
 
-                if selected_crawl_tasks >= self.MAX_CRAWL_TASKS:
+            task_limit = (
+                self.MAX_TASK_TYPE_LIMITS
+                .get(task.task_type)
+            )
+
+            if task_limit is not None:
+
+                if (
+                        selected_task_counts[
+                            task.task_type
+                        ]
+                        >= task_limit
+                ):
                     continue
             if (
 
@@ -321,8 +416,10 @@ class TaskReservationService:
                     "cost": task_cost
                 }
             )
-            if task.task_type == CRAWL_CHAPTER:
-                selected_crawl_tasks += 1
+            if task.task_type in selected_task_counts:
+                selected_task_counts[
+                    task.task_type
+                ] += 1
             used_cost += task_cost
 
 
