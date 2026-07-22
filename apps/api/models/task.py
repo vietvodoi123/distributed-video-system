@@ -1,38 +1,53 @@
-import uuid
-from sqlalchemy.dialects.postgresql import (
-    UUID,
-    JSONB,
-    ARRAY
-)
-
-from sqlalchemy.ext.mutable import MutableDict
 import datetime
+import uuid
+
 from sqlalchemy import (
     String,
     Integer,
+    DateTime,
     ForeignKey,
-    Boolean,
-    DateTime
+    text,
 )
-
-from sqlalchemy import text
-
 from sqlalchemy.dialects.postgresql import (
     UUID,
-    JSONB
+    JSONB,
+    ARRAY,
 )
-
+from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import (
     Mapped,
     mapped_column,
-    relationship
+    relationship,
 )
 
 from shared.db.base import Base
 
+from enum import Enum
+
+
+class TaskStatus(str, Enum):
+
+    WAITING = "waiting"
+
+    READY = "ready"
+
+    RUNNING = "running"
+
+    COMPLETED = "completed"
+
+    FAILED = "failed"
+
+    CANCELLED = "cancelled"
+
+    EXPANDING = "expanding"
+
 
 class Task(Base):
     __tablename__ = "tasks"
+
+    # =====================================================
+    # IDENTITY
+    # =====================================================
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -41,39 +56,40 @@ class Task(Base):
         server_default=text("gen_random_uuid()")
     )
 
-    # =====================================
-    # RELATIONS
-    # =====================================
-
     batch_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("batches.id"),
-        nullable=False
+        nullable=False,
+        index=True
     )
 
-    batch_chapter_id: Mapped[uuid.UUID] = mapped_column(
+    batch_chapter_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("batch_chapters.id"),
-        nullable=True
+        nullable=True,
+        index=True
     )
 
-    chapter_id: Mapped[uuid.UUID] = mapped_column(
+    chapter_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("chapters.id"),
-        nullable=True
+        nullable=True,
+        index=True
     )
 
-    chapter_number: Mapped[int] = mapped_column(
+    chapter_number: Mapped[int | None] = mapped_column(
         Integer,
         nullable=True
     )
-    # =====================================
+
+    # =====================================================
     # TASK INFO
-    # =====================================
+    # =====================================================
 
     task_type: Mapped[str] = mapped_column(
         String,
-        nullable=False
+        nullable=False,
+        index=True
     )
 
     task_stage: Mapped[str] = mapped_column(
@@ -84,46 +100,30 @@ class Task(Base):
     task_group: Mapped[str | None] = mapped_column(
         String,
         nullable=True,
-        index = True
-    )
-    required_capabilities: Mapped[list] = mapped_column(
-        ARRAY(String),
-        default=list
-    )
-    # =====================================
-    # DAG
-    # =====================================
-
-    depends_on_task_id: Mapped[
-        uuid.UUID | None
-    ] = mapped_column(
-        UUID(as_uuid=True),
-        ForeignKey("tasks.id"),
-        nullable=True
-    )
-    downstream_tasks = relationship(
-
-        "Task",
-
-        back_populates="depends_on_task"
-    )
-
-    wait_for_task_types: Mapped[list] = mapped_column(
-        ARRAY(String),
-        default=list
-    )
-    # =====================================
-    # EXECUTION
-    # =====================================
-
-    status: Mapped[str] = mapped_column(
-        String,
-        default="pending"
+        index=True
     )
 
     priority: Mapped[int] = mapped_column(
         Integer,
-        default=0
+        default=0,
+        nullable=False
+    )
+
+    # =====================================================
+    # EXECUTION
+    # =====================================================
+    
+    status: Mapped[str] = mapped_column(
+        String,
+        default=TaskStatus.WAITING.value,
+        nullable=False,
+        index=True
+    )
+
+    remaining_dependencies: Mapped[int] = mapped_column(
+        Integer,
+        default=0,
+        nullable=False
     )
 
     retry_count: Mapped[int] = mapped_column(
@@ -136,27 +136,35 @@ class Task(Base):
         default=3
     )
 
-    is_blocking: Mapped[bool] = mapped_column(
-        Boolean,
-        default=False
-    )
-
-    # =====================================
+    # =====================================================
     # WORKER
-    # =====================================
+    # =====================================================
 
     worker_id: Mapped[str | None] = mapped_column(
         String,
+        nullable=True,
+        index=True
+    )
+
+    claimed_at: Mapped[datetime.datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True
+    )
+
+    started_at: Mapped[datetime.datetime | None] = mapped_column(
+        DateTime(timezone=True),
         nullable=True
     )
 
     lease_expires_at: Mapped[datetime.datetime | None] = mapped_column(
-        nullable=True
+        DateTime(timezone=True),
+        nullable=True,
+        index=True
     )
 
-    # =====================================
+    # =====================================================
     # PAYLOAD
-    # =====================================
+    # =====================================================
 
     payload: Mapped[dict] = mapped_column(
         MutableDict.as_mutable(JSONB),
@@ -166,6 +174,25 @@ class Task(Base):
     result: Mapped[dict | None] = mapped_column(
         MutableDict.as_mutable(JSONB),
         nullable=True
+    )
+
+    output_path: Mapped[str | None] = mapped_column(
+        String,
+        nullable=True
+    )
+
+    manifest_path: Mapped[str | None] = mapped_column(
+        String,
+        nullable=True
+    )
+
+    # =====================================================
+    # RESOURCE
+    # =====================================================
+
+    required_capabilities: Mapped[list[str]] = mapped_column(
+        ARRAY(String),
+        default=list
     )
 
     resource_requirements: Mapped[dict] = mapped_column(
@@ -178,32 +205,61 @@ class Task(Base):
         nullable=True
     )
 
+    dynamic_cost: Mapped[float | None] = mapped_column(
+        nullable=True
+    )
+
+    estimated_duration: Mapped[int | None] = mapped_column(
+        nullable=True
+    )
+
+    # =====================================================
+    # ERROR
+    # =====================================================
 
     error_message: Mapped[str | None] = mapped_column(
         String,
         nullable=True
     )
 
-    # =====================================
-    # OUTPUTS
-    # =====================================
+    # =====================================================
+    # TIMESTAMPS
+    # =====================================================
 
-    output_path: Mapped[str | None] = mapped_column(
-        String,
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=datetime.datetime.utcnow,
+        server_default=text("CURRENT_TIMESTAMP")
+    )
+
+    updated_at: Mapped[datetime.datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+        onupdate=datetime.datetime.utcnow
+    )
+
+    completed_at: Mapped[datetime.datetime | None] = mapped_column(
+        DateTime(timezone=True),
         nullable=True
     )
 
-    manifest_path: Mapped[str | None] = mapped_column(
-        String,
+    failed_at: Mapped[datetime.datetime | None] = mapped_column(
+        DateTime(timezone=True),
         nullable=True
     )
 
-    # =====================================
+    # =====================================================
     # RELATIONSHIPS
-    # =====================================
+    # =====================================================
 
     batch = relationship(
         "Batch",
+        back_populates="tasks"
+    )
+
+    batch_chapter = relationship(
+        "BatchChapter",
         back_populates="tasks"
     )
 
@@ -212,64 +268,16 @@ class Task(Base):
         back_populates="tasks"
     )
 
-    depends_on_task = relationship(
-        "Task",
-        remote_side=[id],
-        uselist=False
-    )
-    batch_chapter = relationship(
-        "BatchChapter",
-        back_populates="tasks"
-    )
-    claimed_by: Mapped[str | None] = mapped_column(
-        nullable=True
+    parent_dependencies = relationship(
+        "TaskDependency",
+        foreign_keys="TaskDependency.child_task_id",
+        back_populates="child_task",
+        cascade="all, delete-orphan"
     )
 
-    claimed_at: Mapped[datetime.datetime | None] = mapped_column(
-        nullable=True
-    )
-
-    started_at: Mapped[datetime.datetime | None] = mapped_column(
-        nullable=True
-    )
-
-    completed_at: Mapped[datetime.datetime | None] = mapped_column(
-        nullable=True
-    )
-
-    failed_at: Mapped[datetime.datetime | None] = mapped_column(
-        nullable=True
-    )
-
-    created_at: Mapped[datetime.datetime] = mapped_column(
-
-        DateTime(timezone=True),
-
-        nullable=False,
-
-        default=datetime.datetime.utcnow,
-
-        server_default=text(
-            "CURRENT_TIMESTAMP"
-        )
-    )
-
-    updated_at: Mapped[
-        datetime.datetime | None
-        ] = mapped_column(
-
-        DateTime(timezone=True),
-
-        nullable=True,
-
-        onupdate=datetime.datetime.utcnow
-    )
-
-
-    dynamic_cost: Mapped[float | None] = mapped_column(
-        nullable=True
-    )
-
-    estimated_duration: Mapped[int | None] = mapped_column(
-        nullable=True
+    child_dependencies = relationship(
+        "TaskDependency",
+        foreign_keys="TaskDependency.parent_task_id",
+        back_populates="parent_task",
+        cascade="all, delete-orphan"
     )

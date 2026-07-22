@@ -1,61 +1,48 @@
 from shared.contracts.enums.task_types import (
-    LINE_TASK
+    LINE_TASK,
 )
 
 from shared.orchestration.scheduling.estimators.base_resource_estimator import (
-    BaseResourceEstimator
+    BaseResourceEstimator,
 )
 
 from shared.orchestration.scheduling.resource_profile import (
-    ResourceProfile
+    ResourceProfile,
 )
 
 
 class AndroidLineTaskEstimator(
-    BaseResourceEstimator
+    BaseResourceEstimator,
 ):
 
     task_type = LINE_TASK
 
-    async def estimate(
+    def estimate(
         self,
         task,
-        db
-    ):
+    ) -> ResourceProfile:
 
-        payload = task.payload
+        payload = task.payload or {}
 
         text = (
-            payload.get(
-                "raw_text",
-                ""
-            )
+            payload.get("line_text")
+            or ""
         )
 
-        text_length = len(text)
+        length = len(text)
 
-        cpu = 1
-        ram = 1
-        network = 1
-        disk_io = 1
+        #
+        # Chi phí tỷ lệ theo độ dài văn bản.
+        #
 
-        if text_length > 500:
-            cpu = 2
-            ram = 2
-
-        if text_length > 2000:
-            cpu = 3
-            ram = 3
+        cost = max(
+            1.0,
+            length / 200.0,
+        )
 
         return ResourceProfile(
 
-            cpu=cpu,
+            cost=round(cost, 2),
 
-            ram=ram,
-
-            gpu=0,
-
-            network=network,
-
-            disk_io=disk_io
+            slots=1,
         )

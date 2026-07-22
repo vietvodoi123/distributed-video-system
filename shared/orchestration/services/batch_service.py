@@ -18,9 +18,26 @@ from apps.api.models.chapter import (
     Chapter
 )
 
-from shared.orchestration.services.task_service import (
-    TaskService
+from shared.orchestration.workflow.workflow_instantiator import (
+    WorkflowInstantiator,
 )
+
+from shared.orchestration.graph.chapter_graph import (
+    CHAPTER_GRAPH,
+)
+
+from shared.orchestration.graph.batch_graph import (
+    BATCH_GRAPH,
+)
+from shared.orchestration.repositories.workflow_repository import (
+    WorkflowRepository,
+)
+from shared.orchestration.services.aggregate_dependency_creator import (
+    AggregateDependencyCreator
+)
+from sqlalchemy.orm import joinedload
+
+from apps.api.models.story import Story
 
 class BatchService:
     def __init__(
@@ -28,10 +45,6 @@ class BatchService:
             db
     ):
         self.db = db
-
-        self.task_service = (
-            TaskService(db)
-        )
 
     async def create_batch(
             self,
@@ -164,20 +177,27 @@ class BatchService:
 
         await self.db.flush()
 
-        # =========================
-        # LOGICAL ARTIFACT PATHS
-        # =========================
-        batch.output_dir = (
-            get_batch_output_dir(
-                batch.id
+        result = await self.db.execute(
+            select(Batch)
+            .options(
+                joinedload(Batch.story)
+                .joinedload(Story.channel)
             )
+            .where(Batch.id == batch.id)
         )
 
-        batch.manifest_path = (
-            get_batch_manifest_path(
-                batch.id
-            )
+        batch = result.scalar_one()
+
+        batch.output_dir = get_batch_output_dir(batch)
+
+        batch.manifest_path = get_batch_manifest_path(batch)
+
+        repository = WorkflowRepository(
+            self.db
         )
+
+        workflow_instances = []
+
         # =========================
         # GET CHAPTERS
         # =========================
@@ -220,37 +240,72 @@ class BatchService:
         for index, chapter in enumerate(
                 chapters
         ):
-            batch_chapter = (
-                BatchChapter(
+            batch_chapter = BatchChapter(
 
-                    batch_id=batch.id,
+                batch=batch,
 
-                    chapter_id=
-                    chapter.id,
+                chapter=chapter,
 
-                    order_index=index
-                )
+                order_index=index,
             )
 
             self.db.add(
                 batch_chapter
             )
 
-            await self.db.flush()
-
-            await self.task_service.spawn_chapter_pipeline(
+            workflow = WorkflowInstantiator(
 
                 batch=batch,
 
-                batch_chapter=
-                batch_chapter,
+                batch_chapter=batch_chapter,
 
                 chapter=chapter,
-                engine=engine
             )
 
-        await self.task_service.spawn_batch_pipeline(
-            batch=batch
+            instance = await workflow.instantiate(
+                CHAPTER_GRAPH
+            )
+
+            workflow_instances.append(
+                instance
+            )
+
+        workflow = WorkflowInstantiator(
+
+            batch=batch,
+        )
+
+        instance = await workflow.instantiate(
+            BATCH_GRAPH
+        )
+
+        workflow_instances.append(
+            instance
+        )
+
+        for instance in workflow_instances:
+            for task in instance.tasks:
+                if task.task_type == "merge_batch_videos":
+                    print(
+                        "BEFORE SAVE",
+                        task.remaining_dependencies,
+                    )
+
+        await repository.save_many(
+            workflow_instances
+        )
+
+        await self.db.flush()
+        print("RUN AggregateDependencyCreator")
+        creator = AggregateDependencyCreator(
+            self.db
+        )
+
+        await creator.create(
+
+            batch_id=batch.id,
+
+            graph=BATCH_GRAPH,
         )
 
         await self.db.commit()

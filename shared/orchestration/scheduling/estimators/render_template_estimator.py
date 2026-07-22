@@ -1,36 +1,28 @@
 from shared.contracts.enums.task_types import (
-    RENDER_TEMPLATE
+    RENDER_TEMPLATE,
 )
 
 from shared.orchestration.scheduling.estimators.base_resource_estimator import (
-    BaseResourceEstimator
+    BaseResourceEstimator,
 )
 
 from shared.orchestration.scheduling.resource_profile import (
-    ResourceProfile
+    ResourceProfile,
 )
 
+
 class RenderTemplateEstimator(
-    BaseResourceEstimator
+    BaseResourceEstimator,
 ):
 
     task_type = RENDER_TEMPLATE
 
-    async def estimate(
+    def estimate(
         self,
         task,
-        db
-    ):
+    ) -> ResourceProfile:
 
         return ResourceProfile(
-
-            cpu=10,
-
-            ram=12,
-
-            gpu=0,
-
-            network=1,
-
-            disk_io=15
+            cost=4.0,
+            slots=1,
         )

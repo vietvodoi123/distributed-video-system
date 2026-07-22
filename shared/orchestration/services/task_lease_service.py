@@ -1,150 +1,126 @@
 from datetime import (
     datetime,
-    timedelta
+    timedelta,
 )
 
 from apps.api.models.task import (
-    Task
+    Task,
 )
 
 
 class TaskLeaseService:
 
-    def __init__(self, db):
+    DEFAULT_LEASE_SECONDS = 300
+
+    def __init__(
+        self,
+        db,
+    ):
 
         self.db = db
 
-    # =====================================
-    # CLAIM LEASE
-    # =====================================
-
-    async def claim_lease(
+    async def renew(
         self,
         *,
         task: Task,
-        worker_id: str,
-        lease_seconds: int = 300
-    ) -> Task | None:
-
-        # =================================
-        # RECLAIM EXPIRED
-        # =================================
-
-        was_reclaimed = (
-            task.status == "running"
-        )
-
-        if was_reclaimed:
-
-            task.retry_count += 1
-
-            print(
-                "[TaskLeaseService] "
-                f"Reclaiming task: "
-                f"{task.id}"
-            )
-
-            if (
-                task.retry_count >=
-                task.max_retries
-            ):
-
-                task.status = "dead"
-
-                print(
-                    "[TaskLeaseService] "
-                    f"Task exceeded retries: "
-                    f"{task.id}"
-                )
-
-                return None
-
-        # =================================
-        # CLAIM
-        # =================================
+        lease_seconds: int | None = None,
+    ):
 
         now = datetime.utcnow()
 
-        task.status = "running"
-
-        task.claimed_by = worker_id
-
-        task.claimed_at = now
-
-        if not task.started_at:
-
-            task.started_at = now
+        if lease_seconds is None:
+            lease_seconds = (
+                self.DEFAULT_LEASE_SECONDS
+            )
 
         task.lease_expires_at = (
-            now +
-            timedelta(
+            now
+            + timedelta(
                 seconds=lease_seconds
             )
         )
 
-        return task
+        await self.db.flush()
 
-    # =====================================
-    # RELEASE LEASE
-    # =====================================
-
-    async def release_lease(
+    async def renew_many(
         self,
-        task: Task
+        *,
+        tasks: list[Task],
+        lease_seconds: int | None = None,
     ):
 
-        task.claimed_by = None
+        now = datetime.utcnow()
+
+        if lease_seconds is None:
+            lease_seconds = (
+                self.DEFAULT_LEASE_SECONDS
+            )
+
+        expires_at = (
+
+            now
+
+            + timedelta(
+                seconds=lease_seconds
+            )
+        )
+
+        for task in tasks:
+
+            task.lease_expires_at = (
+                expires_at
+            )
+
+        await self.db.flush()
+
+
+    async def reset(
+        self,
+        *,
+        task: Task,
+    ):
+        """
+        Reset all worker ownership information.
+
+        This method is intentionally used by RetryService only.
+
+        A lease expiration is NOT considered an execution failure.
+        Therefore retry_count is NOT modified here.
+
+        After reset(), the caller is responsible for deciding the next
+        task status (READY, FAILED, etc.).
+        """
+
+        task.worker_id = None
 
         task.claimed_at = None
 
+        task.started_at = None
+
         task.lease_expires_at = None
 
-    # =====================================
-    # MARK COMPLETED
-    # =====================================
+        await self.db.flush()
 
-    async def mark_completed(
+    async def reset_many(
         self,
         *,
-        task: Task,
-        result: dict | None = None,
-        output_path: str | None = None,
-        manifest_path: str | None = None
+        tasks: list[Task],
     ):
+        """
+        Bulk version of reset().
 
-        task.status = "completed"
+        RetryService uses this when recovering multiple expired leases
+        in one database transaction.
+        """
 
-        task.result = result
+        for task in tasks:
 
-        task.output_path = output_path
+            task.worker_id = None
 
-        task.manifest_path = manifest_path
+            task.claimed_at = None
 
-        task.completed_at = (
-            datetime.utcnow()
-        )
+            task.started_at = None
 
-        await self.release_lease(task)
+            task.lease_expires_at = None
 
-    # =====================================
-    # MARK FAILED
-    # =====================================
-
-    async def mark_failed(
-        self,
-        *,
-        task: Task,
-        error_message: str
-    ):
-
-        task.status = "failed"
-
-        task.error_message = (
-            error_message
-        )
-
-        task.failed_at = (
-            datetime.utcnow()
-        )
-
-        await self.release_lease(task)
+        await self.db.flush()

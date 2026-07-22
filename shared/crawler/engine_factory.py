@@ -5,7 +5,7 @@ from shared.crawler.http_engine import (
 from shared.crawler.playwright_engine import (
     PlaywrightCrawlerEngine
 )
-
+from shared.crawler.scrape_do_engine import (ScrapeDoEngine)
 
 class EngineFactory:
 
@@ -19,6 +19,11 @@ class EngineFactory:
 
             return PlaywrightCrawlerEngine(
                 **kwargs
+            )
+
+        if engine_name == "scrape_do":
+            return ScrapeDoEngine(
+                token="cb00a7233e964b088be28a16408ce53999b8e3c8572"
             )
 
         return HttpCrawlerEngine(

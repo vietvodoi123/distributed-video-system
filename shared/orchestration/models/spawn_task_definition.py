@@ -1,7 +1,8 @@
 from dataclasses import dataclass
+from dataclasses import field
 
 
-@dataclass
+@dataclass(slots=True)
 class SpawnTaskDefinition:
 
     task_type: str
@@ -10,10 +11,14 @@ class SpawnTaskDefinition:
 
     required_capabilities: list[str]
 
-    payload: dict
-
-    depends_on_task_id: str | None = None
-
-    is_blocking: bool = False
+    payload: dict = field(
+        default_factory=dict
+    )
 
     task_group: str | None = None
+
+    priority: int = 0
+
+    resource_requirements: dict = field(
+        default_factory=dict
+    )

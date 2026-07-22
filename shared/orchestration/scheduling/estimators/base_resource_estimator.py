@@ -4,18 +4,17 @@ from abc import abstractmethod
 from apps.api.models.task import Task
 
 from shared.orchestration.scheduling.resource_profile import (
-    ResourceProfile
+    ResourceProfile,
 )
 
 
 class BaseResourceEstimator(ABC):
 
-    task_type: str | None = None
+    task_type: str
 
     @abstractmethod
-    async def estimate(
+    def estimate(
         self,
         task: Task,
-        db
     ) -> ResourceProfile:
-        pass
+        raise NotImplementedError

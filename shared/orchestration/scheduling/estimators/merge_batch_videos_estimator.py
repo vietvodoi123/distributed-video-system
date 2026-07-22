@@ -1,35 +1,28 @@
 from shared.contracts.enums.task_types import (
-    MERGE_BATCH_VIDEO
+    MERGE_BATCH_VIDEO,
 )
 
 from shared.orchestration.scheduling.estimators.base_resource_estimator import (
-    BaseResourceEstimator
+    BaseResourceEstimator,
 )
 
 from shared.orchestration.scheduling.resource_profile import (
-    ResourceProfile
+    ResourceProfile,
 )
+
+
 class MergeBatchVideosEstimator(
-    BaseResourceEstimator
+    BaseResourceEstimator,
 ):
 
     task_type = MERGE_BATCH_VIDEO
 
-    async def estimate(
+    def estimate(
         self,
         task,
-        db
-    ):
+    ) -> ResourceProfile:
 
         return ResourceProfile(
-
-            cpu=4,
-
-            ram=4,
-
-            gpu=0,
-
-            network=0,
-
-            disk_io=15
+            cost=6.0,
+            slots=1,
         )

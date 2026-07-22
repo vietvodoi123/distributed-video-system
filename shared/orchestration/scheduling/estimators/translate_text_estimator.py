@@ -17,21 +17,12 @@ class TranslateTextEstimator(
 
     task_type = TRANSLATE_TEXT
 
-    async def estimate(
+    def estimate(
         self,
         task,
-        db
-    ):
+    ) -> ResourceProfile:
 
         return ResourceProfile(
-
-            cpu=1,
-
-            ram=1,
-
-            gpu=0,
-
-            network=5,
-
-            disk_io=1
+            cost=2.0,
+            slots=1,
         )

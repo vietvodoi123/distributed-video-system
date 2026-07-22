@@ -11,26 +11,17 @@ from shared.orchestration.scheduling.resource_profile import (
 )
 
 class TtsLineEstimator(
-    BaseResourceEstimator
+    BaseResourceEstimator,
 ):
 
     task_type = TTS_LINE
 
-    async def estimate(
+    def estimate(
         self,
         task,
-        db
-    ):
+    ) -> ResourceProfile:
 
         return ResourceProfile(
-
-            cpu=1,
-
-            ram=1,
-
-            gpu=0,
-
-            network=1,
-
-            disk_io=1
+            cost=task.dynamic_cost or 1.0,
+            slots=1,
         )

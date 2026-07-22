@@ -79,9 +79,10 @@ def extract_chapter_number(title: str) -> int | None:
         return None
 
     pattern = (
-        r"(?:第\s*([一二三四五六七八九十百千万零〇两\dIVXLCDM]+)\s*(?:章|话|卷|节|篇|回|集|段|部|册))"
+        r"(?:[第而]?\s*([一二三四五六七八九十百千万零〇两\dIVXLCDM]+)"
+        r"\s*(?:章|话|卷|节|篇|回|集|段|部|册)?)"
         r"|(?:Chương\s+([IVXLCDM\d一二三四五六七八九十百千万零〇两]+))"
-        r"|(?:\b(\d{1,4})\b)"  # NEW: bắt số dạng 004, 14, 24,...
+        r"|(?:\b(\d{1,4})\b)"
     )
 
     m = re.search(pattern, title, re.I)
@@ -106,3 +107,16 @@ def extract_chapter_number(title: str) -> int | None:
     # Chữ Hán
     value = chinese_to_number(num_str)
     return value if value != 0 or ("零" in num_str or "〇" in num_str) else None
+
+
+# tests = [
+#     "第九百四十八章 世家",
+#     "第九百五十九章 葬天矾嶵躗鏄",
+#     "第九百六十章 通道洑",
+#     "第九百九十七章 宗派",
+# ]
+#
+# for t in tests:
+#     print(
+#         extract_chapter_number(t)
+#     )

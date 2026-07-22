@@ -3,11 +3,11 @@ from shared.contracts.enums.task_types import (
 )
 
 from shared.orchestration.scheduling.estimators.base_resource_estimator import (
-    BaseResourceEstimator
+    BaseResourceEstimator,
 )
 
 from shared.orchestration.scheduling.resource_profile import (
-    ResourceProfile
+    ResourceProfile,
 )
 
 
@@ -15,21 +15,16 @@ class CrawlChapterEstimator(
     BaseResourceEstimator
 ):
 
-    task_type = CRAWL_CHAPTER
+    task_type = (
+        CRAWL_CHAPTER
+    )
 
-    async def estimate(
+    def estimate(
         self,
         task,
-        db
-    ):
+    ) -> ResourceProfile:
 
         return ResourceProfile(
-
-            cpu=1,
-
-            ram=1,
-
-            network=5,
-
-            disk_io=1
+            cost=1.0,
+            slots=1,
         )

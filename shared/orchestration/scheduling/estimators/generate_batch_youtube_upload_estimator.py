@@ -1,37 +1,28 @@
 from shared.contracts.enums.task_types import (
-    GENERATE_BATCH_YOUTUBE_UPLOAD
+    GENERATE_BATCH_YOUTUBE_UPLOAD,
 )
 
 from shared.orchestration.scheduling.estimators.base_resource_estimator import (
-    BaseResourceEstimator
+    BaseResourceEstimator,
 )
 
 from shared.orchestration.scheduling.resource_profile import (
-    ResourceProfile
+    ResourceProfile,
 )
 
 
 class YoutubeUploadEstimator(
-    BaseResourceEstimator
+    BaseResourceEstimator,
 ):
 
     task_type = GENERATE_BATCH_YOUTUBE_UPLOAD
 
-    async def estimate(
+    def estimate(
         self,
         task,
-        db
-    ):
+    ) -> ResourceProfile:
 
         return ResourceProfile(
-
-            cpu=1,
-
-            ram=2,
-
-            gpu=0,
-
-            network=10,
-
-            disk_io=8
+            cost=1.0,
+            slots=1,
         )

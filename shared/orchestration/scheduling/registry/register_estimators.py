@@ -1,74 +1,68 @@
 from shared.orchestration.scheduling.registry.resource_estimator_registry import (
-    ResourceEstimatorRegistry
+    ResourceEstimatorRegistry,
 )
 
 from shared.orchestration.scheduling.estimators.crawl_chapter_estimator import (
-    CrawlChapterEstimator
+    CrawlChapterEstimator,
 )
 
 from shared.orchestration.scheduling.estimators.preprocess_text_estimator import (
-    PreprocessTextEstimator
+    PreprocessTextEstimator,
 )
 
 from shared.orchestration.scheduling.estimators.translate_text_estimator import (
-    TranslateTextEstimator
+    TranslateTextEstimator,
 )
 
-# from shared.orchestration.scheduling.estimators.refine_text_estimator import (
-#     RefineTextEstimator
-# )
-#
-# from shared.orchestration.scheduling.estimators.generate_tts_segments_estimator import (
-#     GenerateTtsSegmentsEstimator
-# )
 from shared.orchestration.scheduling.estimators.generate_line_task_estimator import (
-    GenerateLineTaskEstimator
+    GenerateLineTaskEstimator,
 )
+
+from shared.orchestration.scheduling.estimators.android_line_task_estimator import (
+    AndroidLineTaskEstimator,
+)
+
 from shared.orchestration.scheduling.estimators.merge_tts_segments_estimator import (
-    MergeTtsSegmentsEstimator
+    MergeTtsSegmentsEstimator,
 )
 
 from shared.orchestration.scheduling.estimators.generate_text_scroll_estimator import (
-    GenerateTextScrollEstimator
+    GenerateTextScrollEstimator,
 )
 
 from shared.orchestration.scheduling.estimators.generate_mc_loop_estimator import (
-    GenerateMcLoopEstimator
+    GenerateMcLoopEstimator,
 )
 
 from shared.orchestration.scheduling.estimators.render_template_estimator import (
-    RenderTemplateEstimator
+    RenderTemplateEstimator,
 )
 
 from shared.orchestration.scheduling.estimators.compose_video_layers_estimator import (
-    ComposeVideoLayersEstimator
+    ComposeVideoLayersEstimator,
 )
 
 from shared.orchestration.scheduling.estimators.merge_audio_into_video_estimator import (
-    MergeAudioIntoVideoEstimator
+    MergeAudioIntoVideoEstimator,
 )
 
 from shared.orchestration.scheduling.estimators.merge_batch_videos_estimator import (
-    MergeBatchVideosEstimator
+    MergeBatchVideosEstimator,
 )
 
 from shared.orchestration.scheduling.estimators.generate_batch_thumbnail_estimator import (
-    GenerateBatchThumbnailEstimator
+    GenerateBatchThumbnailEstimator,
 )
 
 from shared.orchestration.scheduling.estimators.generate_batch_youtube_description_estimator import (
-    GenerateBatchYoutubeDescriptionEstimator
+    GenerateBatchYoutubeDescriptionEstimator,
 )
 
 from shared.orchestration.scheduling.estimators.generate_batch_youtube_upload_estimator import (
-    YoutubeUploadEstimator
+    YoutubeUploadEstimator,
 )
-from shared.orchestration.scheduling.estimators.android_line_task_estimator import (
-    AndroidLineTaskEstimator
-)
-# from shared.orchestration.scheduling.estimators.tts_line_estimator import (
-#     TtsLineEstimator
-# )
+
+
 _registered = False
 
 
@@ -79,74 +73,43 @@ def register_estimators():
     if _registered:
         return
 
-    ResourceEstimatorRegistry.register(
-        CrawlChapterEstimator()
-    )
+    estimators = [
 
-    ResourceEstimatorRegistry.register(
-        PreprocessTextEstimator()
-    )
+        CrawlChapterEstimator(),
 
-    ResourceEstimatorRegistry.register(
-        TranslateTextEstimator()
-    )
+        PreprocessTextEstimator(),
 
-    # ResourceEstimatorRegistry.register(
-    #     RefineTextEstimator()
-    # )
-    #
-    # ResourceEstimatorRegistry.register(
-    #     GenerateTtsSegmentsEstimator()
-    # )
-    #
-    # ResourceEstimatorRegistry.register(
-    #     TtsLineEstimator()
-    # )
-    ResourceEstimatorRegistry.register(
-        MergeTtsSegmentsEstimator()
-    )
-    ResourceEstimatorRegistry.register(
-        GenerateLineTaskEstimator()
-    )
+        TranslateTextEstimator(),
 
-    ResourceEstimatorRegistry.register(
-        GenerateTextScrollEstimator()
-    )
+        GenerateLineTaskEstimator(),
 
-    ResourceEstimatorRegistry.register(
-        GenerateMcLoopEstimator()
-    )
+        AndroidLineTaskEstimator(),
 
-    ResourceEstimatorRegistry.register(
-        RenderTemplateEstimator()
-    )
+        MergeTtsSegmentsEstimator(),
 
-    ResourceEstimatorRegistry.register(
-        ComposeVideoLayersEstimator()
-    )
+        GenerateTextScrollEstimator(),
 
-    ResourceEstimatorRegistry.register(
-        MergeAudioIntoVideoEstimator()
-    )
+        GenerateMcLoopEstimator(),
 
-    ResourceEstimatorRegistry.register(
-        MergeBatchVideosEstimator()
-    )
+        RenderTemplateEstimator(),
 
-    ResourceEstimatorRegistry.register(
-        GenerateBatchThumbnailEstimator()
-    )
+        ComposeVideoLayersEstimator(),
 
-    ResourceEstimatorRegistry.register(
-        GenerateBatchYoutubeDescriptionEstimator()
-    )
+        MergeAudioIntoVideoEstimator(),
 
-    ResourceEstimatorRegistry.register(
-        YoutubeUploadEstimator()
-    )
-    ResourceEstimatorRegistry.register(
-        AndroidLineTaskEstimator()
-    )
+        MergeBatchVideosEstimator(),
 
+        GenerateBatchThumbnailEstimator(),
+
+        GenerateBatchYoutubeDescriptionEstimator(),
+
+        YoutubeUploadEstimator(),
+    ]
+
+    for estimator in estimators:
+
+        ResourceEstimatorRegistry.register(
+            estimator
+        )
 
     _registered = True

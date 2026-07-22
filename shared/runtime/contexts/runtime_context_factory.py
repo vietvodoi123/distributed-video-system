@@ -1,64 +1,48 @@
 from shared.runtime.contexts.chapter_runtime_context import (
-    ChapterRuntimeContext
+    ChapterRuntimeContext,
 )
 
 from shared.runtime.contexts.batch_runtime_context import (
-    BatchRuntimeContext
+    BatchRuntimeContext,
+)
+
+from shared.runtime.contexts.runtime_context_loader import (
+    RuntimeContextLoader,
 )
 
 
-async def create_runtime_context(
-    task,
-    worker_id,
-    workspace_dir,
-    artifact_storage,
-):
-    # =====================================
-    # CHAPTER TASK
-    # =====================================
+class RuntimeContextFactory:
 
-    if task.chapter is not None:
+    def __init__(
+        self,
+        loader: RuntimeContextLoader,
+    ):
+        self.loader = loader
 
-        context = (
-            ChapterRuntimeContext(
+    async def create_chapter_context(
+        self,
+        workflow_context,
+    ) -> ChapterRuntimeContext:
 
-                task=task,
-
-                worker_id=worker_id,
-
-                workspace_dir=workspace_dir,
-
-                artifact_storage=artifact_storage,
-
-                batch_id=str(task.batch_id),
-
-                chapter_id=str(task.chapter_id),
-
-                chapter_number=task.chapter_number,
-            )
+        entities = await self.loader.load_chapter_entities(
+            workflow_context=workflow_context
         )
 
-    # =====================================
-    # BATCH TASK
-    # =====================================
-
-    else:
-
-        context = (
-            BatchRuntimeContext(
-
-                task=task,
-
-                worker_id=worker_id,
-
-                workspace_dir=workspace_dir,
-
-                artifact_storage=artifact_storage,
-
-                batch_id=str(task.batch_id),
-            )
+        return ChapterRuntimeContext(
+            workflow_context=workflow_context,
+            **entities,
         )
 
-    await context.initialize()
+    async def create_batch_context(
+        self,
+        workflow_context,
+    ) -> BatchRuntimeContext:
 
-    return context
+        entities = await self.loader.load_batch_entities(
+            workflow_context=workflow_context
+        )
+
+        return BatchRuntimeContext(
+            workflow_context=workflow_context,
+            **entities,
+        )

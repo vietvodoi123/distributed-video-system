@@ -1,37 +1,28 @@
 from shared.contracts.enums.task_types import (
-    COMPOSE_VIDEO_LAYERS
+    COMPOSE_VIDEO_LAYERS,
 )
 
 from shared.orchestration.scheduling.estimators.base_resource_estimator import (
-    BaseResourceEstimator
+    BaseResourceEstimator,
 )
 
 from shared.orchestration.scheduling.resource_profile import (
-    ResourceProfile
+    ResourceProfile,
 )
 
 
 class ComposeVideoLayersEstimator(
-    BaseResourceEstimator
+    BaseResourceEstimator,
 ):
 
     task_type = COMPOSE_VIDEO_LAYERS
 
-    async def estimate(
+    def estimate(
         self,
         task,
-        db
-    ):
+    ) -> ResourceProfile:
 
         return ResourceProfile(
-
-            cpu=12,
-
-            ram=10,
-
-            gpu=20,
-
-            network=0,
-
-            disk_io=12
+            cost=8.0,
+            slots=1,
         )

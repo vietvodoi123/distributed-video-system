@@ -1,37 +1,28 @@
 from shared.contracts.enums.task_types import (
-    MERGE_AUDIO_INTO_VIDEO
+    MERGE_AUDIO_INTO_VIDEO,
 )
 
 from shared.orchestration.scheduling.estimators.base_resource_estimator import (
-    BaseResourceEstimator
+    BaseResourceEstimator,
 )
 
 from shared.orchestration.scheduling.resource_profile import (
-    ResourceProfile
+    ResourceProfile,
 )
 
 
 class MergeAudioIntoVideoEstimator(
-    BaseResourceEstimator
+    BaseResourceEstimator,
 ):
 
     task_type = MERGE_AUDIO_INTO_VIDEO
 
-    async def estimate(
+    def estimate(
         self,
         task,
-        db
-    ):
+    ) -> ResourceProfile:
 
         return ResourceProfile(
-
-            cpu=3,
-
-            ram=2,
-
-            gpu=0,
-
-            network=0,
-
-            disk_io=6
+            cost=4.0,
+            slots=1,
         )

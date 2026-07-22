@@ -10,3 +10,4 @@ from .batch import Batch
 from .worker import Worker
 from .task_reservation import TaskReservation
 from .channel import Channel
+from .task_dependency import TaskDependency

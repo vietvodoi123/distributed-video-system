@@ -1,37 +1,28 @@
 from shared.contracts.enums.task_types import (
-    MC_LOOP
+    MC_LOOP,
 )
 
 from shared.orchestration.scheduling.estimators.base_resource_estimator import (
-    BaseResourceEstimator
+    BaseResourceEstimator,
 )
 
 from shared.orchestration.scheduling.resource_profile import (
-    ResourceProfile
+    ResourceProfile,
 )
 
 
 class GenerateMcLoopEstimator(
-    BaseResourceEstimator
+    BaseResourceEstimator,
 ):
 
     task_type = MC_LOOP
 
-    async def estimate(
+    def estimate(
         self,
         task,
-        db
-    ):
+    ) -> ResourceProfile:
 
         return ResourceProfile(
-
-            cpu=2,
-
-            ram=2,
-
-            gpu=0,
-
-            network=0,
-
-            disk_io=3
+            cost=2.0,
+            slots=1,
         )

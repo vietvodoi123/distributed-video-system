@@ -362,9 +362,6 @@ class DiscoveryService:
 
                 all_chapters.append(chapter)
 
-            if len(chapters) < chap_per_page:
-                break
-
             page += 1
 
         return all_chapters
