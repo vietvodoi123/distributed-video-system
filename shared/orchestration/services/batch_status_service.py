@@ -23,3 +23,4 @@ class BatchStatusService:
             return
 
         batch.status = "completed"
+        batch.cleanup_status = "pending"
