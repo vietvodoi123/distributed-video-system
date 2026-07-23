@@ -35,7 +35,7 @@ router = APIRouter(
 class RenewLeaseRequest(
     BaseModel
 ):
-
+    worker_id: str
     task_ids: list[str]
 
 
@@ -72,15 +72,16 @@ async def renew_leases(
         )
     )
 
-    await (
+    renewed = await (
         lease_service.renew_many(
-            tasks=tasks
+            worker_id=payload.worker_id,
+            tasks=tasks,
         )
     )
 
     await db.commit()
 
     return {
-
-        "renewed": len(tasks),
+        "requested": len(tasks),
+        "renewed": renewed,
     }

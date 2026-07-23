@@ -19,6 +19,7 @@ class GraphBuilder:
             task_type: str,
             task_stage: str,
             required_capabilities: list[str],
+            marks_batch_completed: bool = False,
     ) -> GraphNode:
 
         if node_id in self._node_ids:
@@ -37,6 +38,8 @@ class GraphBuilder:
             task_stage=task_stage,
 
             required_capabilities=required_capabilities,
+
+            marks_batch_completed=marks_batch_completed,
         )
 
         self.graph.nodes.append(node)

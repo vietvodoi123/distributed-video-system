@@ -7,6 +7,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     text,
+    Boolean
 )
 from sqlalchemy.dialects.postgresql import (
     UUID,
@@ -249,6 +250,12 @@ class Task(Base):
         nullable=True
     )
 
+    marks_batch_completed: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default=text("false")
+    )
     # =====================================================
     # RELATIONSHIPS
     # =====================================================

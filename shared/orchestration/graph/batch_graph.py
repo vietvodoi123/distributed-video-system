@@ -49,6 +49,8 @@ upload = builder.task(
     task_stage="publish",
 
     required_capabilities=["network"],
+
+    marks_batch_completed=True,
 )
 
 merge_batch.after_aggregate(

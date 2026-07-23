@@ -20,6 +20,8 @@ class GraphNode:
 
     expander: Type | None = None
 
+    marks_batch_completed: bool = False
+
     aggregate_dependencies: list[
         AggregateDependency
     ] = field(

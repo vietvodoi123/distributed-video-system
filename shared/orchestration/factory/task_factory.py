@@ -26,7 +26,6 @@ class TaskFactory:
         context: WorkflowContext,
         node: GraphNode,
     ) -> Task:
-
         return Task(
 
             batch=context.batch,
@@ -46,6 +45,9 @@ class TaskFactory:
             task_stage=node.task_stage,
 
             required_capabilities=node.required_capabilities,
+
+            marks_batch_completed=
+            node.marks_batch_completed,
 
             status=TaskStatus.WAITING,
 

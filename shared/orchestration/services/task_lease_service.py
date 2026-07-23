@@ -20,11 +20,22 @@ class TaskLeaseService:
         self.db = db
 
     async def renew(
-        self,
-        *,
-        task: Task,
-        lease_seconds: int | None = None,
-    ):
+            self,
+            *,
+            worker_id: str,
+            task: Task,
+            lease_seconds: int | None = None,
+    ) -> bool:
+        """
+        Renew the lease only if the task is still owned by the requesting worker.
+
+        Returns:
+            True  -> lease renewed
+            False -> ownership mismatch
+        """
+
+        if task.worker_id != worker_id:
+            return False
 
         now = datetime.utcnow()
 
@@ -34,20 +45,31 @@ class TaskLeaseService:
             )
 
         task.lease_expires_at = (
-            now
-            + timedelta(
-                seconds=lease_seconds
-            )
+                now
+                + timedelta(
+            seconds=lease_seconds
+        )
         )
 
         await self.db.flush()
 
+        return True
+
     async def renew_many(
-        self,
-        *,
-        tasks: list[Task],
-        lease_seconds: int | None = None,
-    ):
+            self,
+            *,
+            worker_id: str,
+            tasks: list[Task],
+            lease_seconds: int | None = None,
+    ) -> int:
+        """
+        Renew leases owned by the requesting worker only.
+
+        Tasks claimed by another worker are ignored.
+
+        Returns:
+            Number of renewed tasks.
+        """
 
         now = datetime.utcnow()
 
@@ -57,21 +79,26 @@ class TaskLeaseService:
             )
 
         expires_at = (
-
-            now
-
-            + timedelta(
-                seconds=lease_seconds
-            )
+                now
+                + timedelta(
+            seconds=lease_seconds
         )
+        )
+
+        renewed = 0
 
         for task in tasks:
 
-            task.lease_expires_at = (
-                expires_at
-            )
+            if task.worker_id != worker_id:
+                continue
+
+            task.lease_expires_at = expires_at
+
+            renewed += 1
 
         await self.db.flush()
+
+        return renewed
 
 
     async def reset(

@@ -16,7 +16,9 @@ from shared.orchestration.services.scheduler_service import (
 from shared.orchestration.models.task_completion import (
     TaskCompletion,
 )
-
+from shared.orchestration.services.batch_status_service import (
+    BatchStatusService,
+)
 
 class TaskCompletionService:
 
@@ -35,6 +37,9 @@ class TaskCompletionService:
                 db
             )
         )
+        self.batch_status_service = (
+            BatchStatusService(db)
+        )
 
     async def complete_task(
         self,
@@ -49,7 +54,10 @@ class TaskCompletionService:
 
             completion=completion,
         )
-
+        if task.marks_batch_completed:
+            await self.batch_status_service.mark_completed(
+                task.batch_id
+            )
         await self.db.commit()
 
     async def complete_task_by_id(
